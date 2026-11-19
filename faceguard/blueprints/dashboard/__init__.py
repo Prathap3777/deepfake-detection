@@ -66,6 +66,8 @@ def overview():
     processing_scans = current_user.scans.filter_by(status="processing").count()
     failed_scans = current_user.scans.filter_by(status="failed").count()
 
+    from faceguard.models.scan import FaceResult
+
     # 7-Day Timeline Trend (Actual database queries)
     today = datetime.now(timezone.utc).date()
     trend_labels = []
@@ -84,13 +86,40 @@ def overview():
         trend_real.append(day_scans.filter_by(overall_prediction="REAL").count())
         trend_fake.append(day_scans.filter_by(overall_prediction="FAKE").count())
 
+    # Monthly Analysis Distribution (Past 6 Months from real DB)
+    month_labels = []
+    month_real = []
+    month_fake = []
+    for m in range(5, -1, -1):
+        # Calculate approx month windows
+        target_date = today - timedelta(days=m * 30)
+        m_start = datetime(target_date.year, target_date.month, 1, 0, 0, 0, tzinfo=timezone.utc)
+        if target_date.month == 12:
+            m_end = datetime(target_date.year + 1, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        else:
+            m_end = datetime(target_date.year, target_date.month + 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        month_labels.append(target_date.strftime("%b %Y"))
+
+        m_scans = current_user.scans.filter(Scan.created_at >= m_start, Scan.created_at < m_end)
+        month_real.append(m_scans.filter_by(overall_prediction="REAL").count())
+        month_fake.append(m_scans.filter_by(overall_prediction="FAKE").count())
+
+    # Face Detection & Modality Statistics
+    total_faces = db.session.query(db.func.sum(Scan.face_count)).filter(Scan.user_id == current_user.id).scalar() or 0
+    single_face_scans = current_user.scans.filter(Scan.face_count == 1).count()
+    multi_face_scans = current_user.scans.filter(Scan.face_count > 1).count()
+
     chart_data = {
         "trend_labels": trend_labels,
         "trend_total": trend_total,
         "trend_real": trend_real,
         "trend_fake": trend_fake,
+        "month_labels": month_labels,
+        "month_real": month_real,
+        "month_fake": month_fake,
         "verdict_dist": [real_scans, fake_scans, max(0, total_scans - (real_scans + fake_scans))],
-        "media_dist": [image_scans, video_scans]
+        "media_dist": [image_scans, video_scans],
+        "face_stats": [single_face_scans, multi_face_scans]
     }
 
     recent_scans = current_user.scans.order_by(Scan.created_at.desc()).limit(8).all()
@@ -106,6 +135,7 @@ def overview():
         risk_color=risk_color,
         image_scans=image_scans,
         video_scans=video_scans,
+        total_faces=total_faces,
         completed_scans=completed_scans,
         processing_scans=processing_scans,
         failed_scans=failed_scans,

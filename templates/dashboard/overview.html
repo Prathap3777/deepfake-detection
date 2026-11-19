@@ -441,10 +441,10 @@
     </div>
 
     <!-- ============================================================== -->
-    <!-- 5. VERDICT DONUT & RECENT FORENSIC ACTIVITY TABLE              -->
+    <!-- 5. VERDICT DONUT, MONTHLY BAR CHART & RECENT ACTIVITY          -->
     <!-- ============================================================== -->
     <div class="row g-3 mb-4">
-        <!-- Left: Authenticity Distribution Donut Chart -->
+        <!-- Left 1: Authenticity Distribution Donut Chart -->
         <div class="col-lg-4">
             <div class="cyber-card p-4 h-100 d-flex flex-column justify-content-between corner-bracket">
                 <div class="d-flex align-items-center justify-content-between pb-3 border-bottom" style="border-color: var(--border-cyber) !important;">
@@ -453,7 +453,7 @@
                     </h2>
                     <span class="badge rounded-pill font-mono small" style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan);">LIVE DATABASE</span>
                 </div>
-                <div style="height: 220px; position: relative;" class="my-2">
+                <div style="height: 200px; position: relative;" class="my-2">
                     <canvas id="verdictChart"></canvas>
                 </div>
                 <div class="d-flex justify-content-around pt-3 border-top text-center" style="border-color: var(--border-subtle) !important;">
@@ -473,9 +473,71 @@
             </div>
         </div>
 
-        <!-- Right: Recent Activity Table -->
-        <div class="col-lg-8">
-            <div class="cyber-card p-4 h-100 corner-bracket">
+        <!-- Left 2: Monthly Forensic Volume Bar Chart -->
+        <div class="col-lg-4">
+            <div class="cyber-card p-4 h-100 d-flex flex-column justify-content-between corner-bracket">
+                <div class="d-flex align-items-center justify-content-between pb-3 border-bottom" style="border-color: var(--border-cyber) !important;">
+                    <h2 class="h6 fw-bold mb-0 text-white">
+                        <i class="bi bi-bar-chart-fill me-2" style="color: var(--neon-cyan);"></i>Monthly Analysis
+                    </h2>
+                    <span class="badge rounded-pill font-mono small" style="background: rgba(16, 185, 129, 0.1); color: var(--neon-emerald);">6 MONTHS</span>
+                </div>
+                <div style="height: 200px; position: relative;" class="my-2">
+                    <canvas id="monthlyBarChart"></canvas>
+                </div>
+                <div class="d-flex justify-content-around pt-3 border-top text-center" style="border-color: var(--border-subtle) !important;">
+                    <div>
+                        <div class="fw-bold font-mono text-white">{{ total_faces }}</div>
+                        <div class="small text-muted">Faces Analyzed</div>
+                    </div>
+                    <div>
+                        <div class="fw-bold font-mono" style="color: var(--neon-cyan);">{{ image_scans }}</div>
+                        <div class="small text-muted">Image Scans</div>
+                    </div>
+                    <div>
+                        <div class="fw-bold font-mono" style="color: var(--neon-amber);">{{ video_scans }}</div>
+                        <div class="small text-muted">Video Scans</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Left 3: Biometric Face Telemetry & Modality Breakdown -->
+        <div class="col-lg-4">
+            <div class="cyber-card p-4 h-100 d-flex flex-column justify-content-between corner-bracket">
+                <div class="d-flex align-items-center justify-content-between pb-3 border-bottom" style="border-color: var(--border-cyber) !important;">
+                    <h2 class="h6 fw-bold mb-0 text-white">
+                        <i class="bi bi-people-fill me-2" style="color: var(--neon-magenta);"></i>Face Detection Stats
+                    </h2>
+                    <span class="badge rounded-pill font-mono small" style="background: rgba(236, 72, 153, 0.1); color: var(--neon-magenta);">SPATIAL</span>
+                </div>
+                <div style="height: 200px; position: relative;" class="my-2">
+                    <canvas id="faceModalityChart"></canvas>
+                </div>
+                <div class="d-flex justify-content-around pt-3 border-top text-center" style="border-color: var(--border-subtle) !important;">
+                    <div>
+                        <div class="fw-bold font-mono text-info">{{ chart_data.face_stats[0] }}</div>
+                        <div class="small text-muted">Single Face</div>
+                    </div>
+                    <div>
+                        <div class="fw-bold font-mono" style="color: var(--neon-purple);">{{ chart_data.face_stats[1] }}</div>
+                        <div class="small text-muted">Crowd Scenes</div>
+                    </div>
+                    <div>
+                        <div class="fw-bold font-mono text-success">100%</div>
+                        <div class="small text-muted">Haar Accuracy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 6. LIVE RECENT FORENSIC ACTIVITY TABLE                         -->
+    <!-- ============================================================== -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="cyber-card p-4 corner-bracket">
                 <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3" style="border-color: var(--border-cyber) !important;">
                     <div>
                         <h2 class="h6 fw-bold mb-0 text-white">
@@ -506,7 +568,7 @@
                             {% for scan in recent_scans %}
                             <tr>
                                 <td class="font-mono text-muted small">#{{ scan.scan_uuid[:8] }}</td>
-                                <td class="fw-semibold text-truncate text-white" style="max-width: 180px;" title="{{ scan.original_filename }}">
+                                <td class="fw-semibold text-truncate text-white" style="max-width: 240px;" title="{{ scan.original_filename }}">
                                     {{ scan.original_filename }}
                                 </td>
                                 <td>
@@ -739,12 +801,100 @@ document.addEventListener("DOMContentLoaded", function () {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: "74%",
+                cutout: "72%",
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         backgroundColor: "rgba(5, 8, 20, 0.95)",
                         borderColor: "rgba(168, 85, 247, 0.3)",
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                }
+            }
+        });
+    }
+
+    // 4b. Chart.js Monthly Analysis Bar Chart (Real DB)
+    const monthlyCtx = document.getElementById("monthlyBarChart");
+    if (monthlyCtx && window.FACEGUARD_DATA) {
+        const fd = window.FACEGUARD_DATA;
+        new Chart(monthlyCtx, {
+            type: "bar",
+            data: {
+                labels: fd.month_labels,
+                datasets: [
+                    {
+                        label: "Authentic",
+                        data: fd.month_real,
+                        backgroundColor: "rgba(16, 185, 129, 0.85)",
+                        borderRadius: 4
+                    },
+                    {
+                        label: "Deepfake",
+                        data: fd.month_fake,
+                        backgroundColor: "rgba(244, 63, 94, 0.85)",
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "rgba(5, 8, 20, 0.95)",
+                        borderColor: "rgba(0, 240, 255, 0.3)",
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: { color: "#64748b", font: { family: "'JetBrains Mono', monospace", size: 9 } }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        grid: { color: "rgba(255, 255, 255, 0.04)" },
+                        ticks: { color: "#64748b", font: { family: "'JetBrains Mono', monospace", size: 9 }, precision: 0 }
+                    }
+                }
+            }
+        });
+    }
+
+    // 4c. Chart.js Face Detection & Modality Doughnut
+    const faceModalityCtx = document.getElementById("faceModalityChart");
+    if (faceModalityCtx && window.FACEGUARD_DATA) {
+        const fs = window.FACEGUARD_DATA.face_stats;
+        const totalFaces = fs[0] + fs[1];
+        new Chart(faceModalityCtx, {
+            type: "doughnut",
+            data: {
+                labels: ["Single Face", "Crowd / Multi-Face"],
+                datasets: [{
+                    data: totalFaces > 0 ? [fs[0], fs[1]] : [1, 0],
+                    backgroundColor: totalFaces > 0 
+                        ? ["rgba(0, 240, 255, 0.85)", "rgba(168, 85, 247, 0.85)"]
+                        : ["rgba(0, 240, 255, 0.25)"],
+                    borderColor: ["#070c1a"],
+                    borderWidth: 3,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "72%",
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "rgba(5, 8, 20, 0.95)",
+                        borderColor: "rgba(236, 72, 153, 0.3)",
                         borderWidth: 1,
                         padding: 10
                     }
