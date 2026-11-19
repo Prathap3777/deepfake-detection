@@ -160,3 +160,51 @@ def test_reports_tenant_isolation(app, client):
     client.post("/auth/login", data={"email": "usera@faceguard.ai", "password": "SecurePass123!"}, follow_redirects=True)
     res_forbidden = client.get(f"/reports/{report_b_uuid}/download")
     assert res_forbidden.status_code == 404
+
+def test_public_report_verification_valid_uuid(app, client):
+    """Anonymous visitors can publicly verify authentic reports without leaking private user identity"""
+    with app.app_context():
+        user = User(full_name="Alice Crypto", email="alice.secret@faceguard.ai", is_verified=True, role="user")
+        user.set_password("SecurePass123!")
+        db.session.add(user)
+        db.session.commit()
+
+        scan = Scan(
+            user_id=user.id,
+            media_type="image",
+            original_filename="verified_doc.jpg",
+            saved_filename="verified_doc_uuid.jpg",
+            face_count=1,
+            overall_prediction="REAL",
+            overall_confidence=98.4,
+            risk_score=12.5,
+            review_priority="Lower Review Priority",
+            sha256="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            status="completed"
+        )
+        db.session.add(scan)
+        db.session.commit()
+
+        pdf_record = generate_scan_pdf(scan)
+        report_uuid = pdf_record.report_uuid
+
+    # Query public verification endpoint anonymously (no login)
+    res = client.get(f"/reports/verify/{report_uuid}")
+    assert res.status_code == 200
+    assert b"Forensic Dossier Authenticated" in res.data
+    assert b"VERIFIED AUTHENTIC" in res.data
+    assert b"verified_doc.jpg" in res.data
+    assert b"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" in res.data
+    assert b"98.4%" in res.data
+    assert b"12.5/100" in res.data
+    assert b"Lower Review Priority" in res.data
+    # Crucial privacy assertion: user private info must NOT be present
+    assert b"alice.secret@faceguard.ai" not in res.data
+    assert b"Alice Crypto" not in res.data
+
+def test_public_report_verification_invalid_uuid(client):
+    """Invalid or revoked report UUIDs return 404 with verification failure page"""
+    res = client.get("/reports/verify/00000000-0000-0000-0000-000000000000")
+    assert res.status_code == 404
+    assert b"Verification Unsuccessful" in res.data
+    assert b"00000000-0000-0000-0000-000000000000" in res.data

@@ -81,6 +81,46 @@
                     </a>
                 </li>
 
+                <!-- 6. AI Forensic Intelligence Center -->
+                <li class="nav-item">
+                    <a href="{{ url_for('detect.forensics_page') }}" class="nav-link {% if active_page == 'detect_forensics' %}active{% endif %}">
+                        <i class="bi bi-fingerprint"></i>
+                        <span>Forensic Intelligence</span>
+                    </a>
+                </li>
+
+                <!-- 7. AI Risk Assessment -->
+                <li class="nav-item">
+                    <a href="{{ url_for('detect.risk_page') }}" class="nav-link {% if active_page == 'detect_risk' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Risk Assessment</span>
+                    </a>
+                </li>
+
+                <!-- 8. Detection Comparison Studio -->
+                <li class="nav-item">
+                    <a href="{{ url_for('detect.comparison_studio') }}" class="nav-link {% if active_page == 'detect_compare' %}active{% endif %}">
+                        <i class="bi bi-intersect"></i>
+                        <span>Comparison Studio</span>
+                    </a>
+                </li>
+
+                <!-- 9. Batch Image Intelligence -->
+                <li class="nav-item">
+                    <a href="{{ url_for('detect.batch_page') }}" class="nav-link {% if active_page == 'detect_batch' %}active{% endif %}">
+                        <i class="bi bi-stack"></i>
+                        <span>Batch Intelligence</span>
+                    </a>
+                </li>
+
+                <!-- 10. AI Forensic Chat Assistant -->
+                <li class="nav-item">
+                    <a href="{{ url_for('chat.chat_index') }}" class="nav-link {% if active_page == 'chat' %}active{% endif %}">
+                        <i class="bi bi-chat-square-text"></i>
+                        <span>AI Forensic Chat</span>
+                    </a>
+                </li>
+
                 <li class="nav-section-title">Analysis & Audit</li>
 
                 <!-- 6. Detection History -->

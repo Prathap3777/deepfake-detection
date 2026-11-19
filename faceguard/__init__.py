@@ -33,7 +33,7 @@ def create_app(config_class=Config):
 
     with app.app_context():
         # Import models so SQLAlchemy registers them
-        from faceguard.models import User, Scan, FaceResult, VideoFrame, AuditLog, PDFReport, Feedback
+        from faceguard.models import User, Scan, FaceResult, VideoFrame, AuditLog, PDFReport, Feedback, BatchJob, BatchItem, ChatSession, ChatMessage
         db.create_all()
 
         # Migrate existing users from users.db if present
@@ -62,10 +62,12 @@ def register_blueprints(app):
     from faceguard.blueprints.analytics import analytics_bp
     from faceguard.blueprints.reports import reports_bp
     from faceguard.blueprints.admin import admin_bp
+    from faceguard.blueprints.chat import chat_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/")
     app.register_blueprint(detect_bp, url_prefix="/detect")
+    app.register_blueprint(chat_bp, url_prefix="/chat")
     app.register_blueprint(history_bp, url_prefix="/history")
     app.register_blueprint(analytics_bp, url_prefix="/analytics")
     app.register_blueprint(reports_bp, url_prefix="/reports")

@@ -8,11 +8,14 @@ import uuid
 from datetime import datetime, timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether, HRFlowable
 )
 from reportlab.pdfgen import canvas
+from reportlab.graphics.barcode.qr import QrCodeWidget
+from reportlab.graphics.shapes import Drawing
 from faceguard.config import Config, BASE_DIR
 from faceguard.extensions import db
 from faceguard.models.audit import PDFReport
@@ -62,13 +65,19 @@ def resolve_absolute_path(rel_path):
     full_path = os.path.join(BASE_DIR, "static", cleaned)
     return full_path if os.path.exists(full_path) else None
 
+resolve_static_path = resolve_absolute_path
+
 def generate_scan_pdf(scan, output_path=None):
     """
     Synthesizes an academic-grade, publication-ready PDF dossier for a completed scan.
     Includes model predictions, physical forensic indicators, visual artifacts, and cryptographic hash.
     """
     os.makedirs(Config.REPORT_FOLDER, exist_ok=True)
-    report_uuid = str(uuid.uuid4())
+    existing_report = PDFReport.query.filter_by(scan_id=scan.id).first()
+    if existing_report and existing_report.report_uuid:
+        report_uuid = existing_report.report_uuid
+    else:
+        report_uuid = str(uuid.uuid4())
 
     if not output_path:
         pdf_filename = f"report_{scan.scan_uuid}.pdf"
@@ -154,7 +163,7 @@ def generate_scan_pdf(scan, output_path=None):
     story.append(Paragraph("Multi-Domain Forensic Analysis: PyTorch ResNet-18 Vision CNN + 2D-FFT Radial Spectrum + Laplacian Noise + ELA", subtitle_style))
     story.append(HRFlowable(width="100%", thickness=1, color=c_border, spaceBefore=0, spaceAfter=8))
 
-    # 2. Executive Metadata Grid
+    # 2. Executive Metadata Grid & Server-Side Verification QR Code
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     meta_data = [
         [
@@ -174,10 +183,16 @@ def generate_scan_pdf(scan, output_path=None):
             Paragraph(scan.sha256 or "N/A", mono_style),
             Paragraph("<b>Faces Localized:</b>", body_style),
             Paragraph(str(scan.face_count), body_style)
+        ],
+        [
+            Paragraph("<b>Risk Score:</b>", body_style),
+            Paragraph(f"{scan.risk_score or 0.0} / 100", mono_style),
+            Paragraph("<b>Review Priority:</b>", body_style),
+            Paragraph(scan.review_priority or "Lower Review Priority", body_style)
         ]
     ]
 
-    meta_table = Table(meta_data, colWidths=[90, 180, 80, 190])
+    meta_table = Table(meta_data, colWidths=[75, 140, 75, 150])
     meta_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), c_bg_subtle),
         ('BOX', (0, 0), (-1, -1), 0.5, c_border),
@@ -187,7 +202,49 @@ def generate_scan_pdf(scan, output_path=None):
         ('LEFTPADDING', (0, 0), (-1, -1), 6),
         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
     ]))
-    story.append(meta_table)
+
+    # Server-Side Verification QR Code Flowable
+    base_host = "https://deepfake-detection-ai-24im.onrender.com"
+    try:
+        from flask import has_request_context, request
+        if has_request_context() and request.host_url:
+            base_host = request.host_url.rstrip("/")
+    except Exception:
+        pass
+
+    verification_url = f"{base_host}/reports/verify/{report_uuid}"
+    qr_widget = QrCodeWidget(verification_url)
+    b = qr_widget.getBounds()
+    w = b[2] - b[0]
+    h = b[3] - b[1]
+    qr_side = 64
+    qr_drawing = Drawing(qr_side, qr_side, transform=[qr_side / w, 0, 0, qr_side / h, 0, 0])
+    qr_drawing.add(qr_widget)
+
+    qr_box = Table([
+        [qr_drawing],
+        [Paragraph("<font size='5.5' color='#0284c7'><b>SCAN TO VERIFY</b></font><br/><font size='5' color='#64748b'>Cloud Tamper Audit</font>", ParagraphStyle("QRCap", parent=body_style, alignment=1))]
+    ], colWidths=[95])
+    qr_box.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 0.5, c_border),
+        ('BACKGROUND', (0, 0), (-1, -1), c_bg_subtle),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+    ]))
+
+    header_grid = Table([[meta_table, qr_box]], colWidths=[440, 100])
+    header_grid.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story.append(header_grid)
     story.append(Spacer(1, 10))
 
     # 3. Overall Verdict Banner
@@ -400,3 +457,364 @@ def generate_scan_pdf(scan, output_path=None):
     db.session.commit()
 
     return pdf_record
+
+def generate_comparison_pdf(comp_data, output_path=None):
+    """
+    Synthesizes a side-by-side comparative forensic PDF dossier for two compared images.
+    """
+    os.makedirs(Config.REPORT_FOLDER, exist_ok=True)
+    report_uuid = str(uuid.uuid4())
+
+    if not output_path:
+        pdf_filename = f"comparison_{report_uuid[:12]}.pdf"
+        output_path = os.path.join(Config.REPORT_FOLDER, pdf_filename)
+        rel_db_path = f"static/reports/{pdf_filename}"
+    else:
+        rel_db_path = output_path
+
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=54,
+        bottomMargin=54
+    )
+
+    styles = getSampleStyleSheet()
+    c_primary = colors.HexColor("#0f172a")
+    c_sky = colors.HexColor("#0284c7")
+    c_success = colors.HexColor("#059669")
+    c_danger = colors.HexColor("#e11d48")
+    c_border = colors.HexColor("#e2e8f0")
+    c_bg_subtle = colors.HexColor("#f8fafc")
+
+    title_style = ParagraphStyle(
+        "CompTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=18,
+        textColor=c_primary
+    )
+
+    body_style = ParagraphStyle(
+        "CompBody",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=8.5,
+        leading=11,
+        textColor=c_primary
+    )
+
+    mono_style = ParagraphStyle(
+        "CompMono",
+        parent=styles["Normal"],
+        fontName="Courier",
+        fontSize=7.5,
+        leading=9.5,
+        textColor=c_sky
+    )
+
+    story = []
+
+    # Title
+    story.append(Paragraph("FACEGUARD AI: Detection Comparison Studio Dossier", title_style))
+    story.append(Paragraph("Side-by-Side Neural & Forensic Analysis: Image A vs Image B", body_style))
+    story.append(HRFlowable(width="100%", thickness=1, color=c_border, spaceBefore=4, spaceAfter=8))
+
+    # Executive Verdict Comparison
+    im_a = comp_data["image_a"]
+    im_b = comp_data["image_b"]
+
+    comp_rows = [
+        [
+            Paragraph("<b>Metric / Parameter</b>", body_style),
+            Paragraph(f"<b>Image A: {im_a['name']}</b>", body_style),
+            Paragraph(f"<b>Image B: {im_b['name']}</b>", body_style),
+            Paragraph("<b>Divergence Delta</b>", body_style)
+        ],
+        [
+            Paragraph("<b>CNN Verdict:</b>", body_style),
+            Paragraph(f"<font color='{'#059669' if im_a['prediction'] == 'REAL' else '#e11d48'}'><b>{im_a['prediction']}</b></font>", body_style),
+            Paragraph(f"<font color='{'#059669' if im_b['prediction'] == 'REAL' else '#e11d48'}'><b>{im_b['prediction']}</b></font>", body_style),
+            Paragraph("Concordant" if comp_data["concordant"] else "DIVERGENT", mono_style)
+        ],
+        [
+            Paragraph("<b>Model Confidence:</b>", body_style),
+            Paragraph(f"{im_a['confidence']}%", body_style),
+            Paragraph(f"{im_b['confidence']}%", body_style),
+            Paragraph(f"&Delta; {comp_data['conf_delta']}%", mono_style)
+        ],
+        [
+            Paragraph("<b>Risk Score (0-100):</b>", body_style),
+            Paragraph(f"{im_a['risk']['risk_score']} ({im_a['risk']['review_priority']})", body_style),
+            Paragraph(f"{im_b['risk']['risk_score']} ({im_b['risk']['review_priority']})", body_style),
+            Paragraph(f"&Delta; {comp_data['risk_delta']} pts", mono_style)
+        ],
+        [
+            Paragraph("<b>Dimensions:</b>", body_style),
+            Paragraph(im_a['props']['dimensions'], body_style),
+            Paragraph(im_b['props']['dimensions'], body_style),
+            Paragraph(f"{im_a['props']['megapixels']} vs {im_b['props']['megapixels']} MP", mono_style)
+        ],
+        [
+            Paragraph("<b>File Size:</b>", body_style),
+            Paragraph(f"{im_a['props']['file_size_kb']} KB", body_style),
+            Paragraph(f"{im_b['props']['file_size_kb']} KB", body_style),
+            Paragraph(f"&Delta; {abs(im_a['props']['file_size_kb'] - im_b['props']['file_size_kb']):.1f} KB", mono_style)
+        ],
+        [
+            Paragraph("<b>Sensor Noise Var:</b>", body_style),
+            Paragraph(f"{im_a['forensics'].get('sensor_noise_variance', 'N/A')}", body_style),
+            Paragraph(f"{im_b['forensics'].get('sensor_noise_variance', 'N/A')}", body_style),
+            Paragraph("Microscopic Grain", mono_style)
+        ],
+        [
+            Paragraph("<b>EXIF Metadata:</b>", body_style),
+            Paragraph("Tags Present" if im_a['exif']['has_exif'] else "Stripped", body_style),
+            Paragraph("Tags Present" if im_b['exif']['has_exif'] else "Stripped", body_style),
+            Paragraph("Contextual", mono_style)
+        ]
+    ]
+
+    comp_table = Table(comp_rows, colWidths=[120, 150, 150, 120])
+    comp_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), c_bg_subtle),
+        ('BOX', (0, 0), (-1, -1), 0.5, c_border),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, c_border),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    story.append(comp_table)
+    story.append(Spacer(1, 10))
+
+    # Summary box
+    story.append(Paragraph(f"<b>Comparative Summary:</b> {comp_data['summary']}", body_style))
+    story.append(Spacer(1, 8))
+
+    # Visual Evidence Images (Side-by-side)
+    img_cells = []
+    cell_a = []
+    cell_b = []
+
+    path_a = resolve_static_path(f"uploads/{im_a['filename']}")
+    if not path_a or not os.path.exists(path_a):
+        try:
+            from flask import current_app
+            cand_a = os.path.join(current_app.config.get("UPLOAD_FOLDER", ""), im_a['filename'])
+            if os.path.exists(cand_a):
+                path_a = cand_a
+        except Exception:
+            pass
+
+    path_b = resolve_static_path(f"uploads/{im_b['filename']}")
+    if not path_b or not os.path.exists(path_b):
+        try:
+            from flask import current_app
+            cand_b = os.path.join(current_app.config.get("UPLOAD_FOLDER", ""), im_b['filename'])
+            if os.path.exists(cand_b):
+                path_b = cand_b
+        except Exception:
+            pass
+
+    if path_a and os.path.exists(path_a):
+        try:
+            cell_a.append(Paragraph("<b>Image A Preview:</b>", body_style))
+            cell_a.append(Image(path_a, width=2.4*inch, height=2.4*inch))
+        except Exception:
+            cell_a.append(Paragraph("[Image A unrenderable]", body_style))
+
+    if path_b and os.path.exists(path_b):
+        try:
+            cell_b.append(Paragraph("<b>Image B Preview:</b>", body_style))
+            cell_b.append(Image(path_b, width=2.4*inch, height=2.4*inch))
+        except Exception:
+            cell_b.append(Paragraph("[Image B unrenderable]", body_style))
+
+    if cell_a and cell_b:
+        gallery_table = Table([[cell_a, cell_b]], colWidths=[270, 270])
+        gallery_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(gallery_table)
+
+    story.append(Spacer(1, 12))
+
+    # Academic Disclaimer
+    disclaimer_text = (
+        "<b>Important Scientific Disclaimer:</b> Visual and forensic differences between Image A and Image B "
+        "(such as compression deltas, lighting differences, or crop boundaries) do not necessarily prove malicious manipulation. "
+        "Standard photo editing, resizing, and social media compression algorithms alter pixel values significantly. "
+        "Divergence must be interpreted using calibrated neural feature activations and multi-domain forensic analysis."
+    )
+    disclaimer_table = Table([[Paragraph(disclaimer_text, body_style)]], colWidths=[540])
+    disclaimer_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#fffbeb")),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#fef3c7")),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(KeepTogether([disclaimer_table]))
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+    return output_path
+
+def generate_batch_pdf(batch, output_path=None):
+    """
+    Synthesizes a combined forensic PDF report for an entire batch investigation job.
+    """
+    os.makedirs(Config.REPORT_FOLDER, exist_ok=True)
+    report_uuid = str(uuid.uuid4())
+
+    if not output_path:
+        pdf_filename = f"batch_{batch.batch_uuid[:12]}.pdf"
+        output_path = os.path.join(Config.REPORT_FOLDER, pdf_filename)
+    
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=54,
+        bottomMargin=54
+    )
+
+    styles = getSampleStyleSheet()
+    c_primary = colors.HexColor("#0f172a")
+    c_sky = colors.HexColor("#0284c7")
+    c_success = colors.HexColor("#059669")
+    c_danger = colors.HexColor("#e11d48")
+    c_border = colors.HexColor("#e2e8f0")
+    c_bg_subtle = colors.HexColor("#f8fafc")
+
+    title_style = ParagraphStyle(
+        "BatchTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=18,
+        textColor=c_primary
+    )
+
+    body_style = ParagraphStyle(
+        "BatchBody",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=8.5,
+        leading=11,
+        textColor=c_primary
+    )
+
+    mono_style = ParagraphStyle(
+        "BatchMono",
+        parent=styles["Normal"],
+        fontName="Courier",
+        fontSize=7.5,
+        leading=9.5,
+        textColor=c_sky
+    )
+
+    story = []
+
+    # Title & Metadata
+    story.append(Paragraph(f"FACEGUARD AI: Batch Image Intelligence Report", title_style))
+    story.append(Paragraph(f"Batch Session: {batch.title} &bull; Job UUID: #{batch.batch_uuid[:8]}", body_style))
+    story.append(HRFlowable(width="100%", thickness=1, color=c_border, spaceBefore=4, spaceAfter=8))
+
+    # Executive Summary Table
+    now_str = batch.created_at.strftime("%Y-%m-%d %H:%M UTC") if batch.created_at else ""
+    summary_rows = [
+        [
+            Paragraph("<b>Total Files:</b>", body_style),
+            Paragraph(str(batch.total_files), body_style),
+            Paragraph("<b>Analyzed At:</b>", body_style),
+            Paragraph(now_str, body_style)
+        ],
+        [
+            Paragraph("<b>Authentic Verified:</b>", body_style),
+            Paragraph(f"<font color='#059669'><b>{batch.real_count} images</b></font>", body_style),
+            Paragraph("<b>Manipulated (Fake):</b>", body_style),
+            Paragraph(f"<font color='#e11d48'><b>{batch.fake_count} images</b></font>", body_style)
+        ],
+        [
+            Paragraph("<b>Threat Detection Rate:</b>", body_style),
+            Paragraph(f"<b>{batch.threat_rate}%</b>", mono_style),
+            Paragraph("<b>Processing Status:</b>", body_style),
+            Paragraph(batch.status.upper(), mono_style)
+        ]
+    ]
+
+    sum_table = Table(summary_rows, colWidths=[120, 150, 120, 150])
+    sum_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), c_bg_subtle),
+        ('BOX', (0, 0), (-1, -1), 0.5, c_border),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, c_border),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    story.append(sum_table)
+    story.append(Spacer(1, 10))
+
+    # Items Breakdown Table
+    item_header = [
+        Paragraph("<b>#</b>", body_style),
+        Paragraph("<b>Original Filename</b>", body_style),
+        Paragraph("<b>Faces</b>", body_style),
+        Paragraph("<b>Verdict</b>", body_style),
+        Paragraph("<b>Confidence</b>", body_style),
+        Paragraph("<b>Risk Level</b>", body_style)
+    ]
+    item_rows = [item_header]
+
+    for idx, it in enumerate(batch.items, 1):
+        pred_color = '#059669' if it.prediction == 'REAL' else ('#e11d48' if it.prediction == 'FAKE' else '#64748b')
+        item_rows.append([
+            Paragraph(str(idx), mono_style),
+            Paragraph(it.original_filename[:25], body_style),
+            Paragraph(str(it.face_count), body_style),
+            Paragraph(f"<font color='{pred_color}'><b>{it.prediction}</b></font>", body_style),
+            Paragraph(f"{it.confidence:.1f}%", body_style),
+            Paragraph(it.review_priority or "N/A", body_style)
+        ])
+
+    items_table = Table(item_rows, colWidths=[24, 180, 46, 90, 80, 120])
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), c_bg_subtle),
+        ('BOX', (0, 0), (-1, -1), 0.5, c_border),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, c_border),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    story.append(items_table)
+    story.append(Spacer(1, 12))
+
+    # Academic Disclaimer
+    disclaimer_text = (
+        "<b>Academic & Enterprise Compliance:</b> Batch threat analysis represents aggregate statistical screening. "
+        "Each high-priority detection item should be individually verified in the Forensic Intelligence Center and "
+        "Grad-CAM Heatmap Studio prior to forensic or legal certification."
+    )
+    disclaimer_table = Table([[Paragraph(disclaimer_text, body_style)]], colWidths=[540])
+    disclaimer_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#fffbeb")),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#fef3c7")),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(KeepTogether([disclaimer_table]))
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+    return output_path

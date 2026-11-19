@@ -61,6 +61,20 @@ def image_page():
                 artifact_prefix=scan_uuid[:8]
             )
 
+            from faceguard.core.risk import compute_risk_assessment
+            forensics = result.get("forensics", {})
+            risk_info = compute_risk_assessment(
+                cnn_prediction=result.get("prediction", "REAL"),
+                cnn_confidence=result.get("confidence", 0.0),
+                sensor_variance=forensics.get("sensor_noise_variance", 50.0) or 50.0,
+                fft_ratio=forensics.get("frequency_fft_ratio", 0.72) or 0.72,
+                ela_uniformity=forensics.get("ela_uniformity", 1.2) or 1.2,
+                chroma_score=forensics.get("chromatic_coherence", 0.88) or 0.88,
+                has_exif=False,
+                face_count=result.get("face_count", 0)
+            )
+            result["risk_assessment"] = risk_info
+
             scan = Scan(
                 scan_uuid=scan_uuid,
                 user_id=current_user.id,
@@ -73,6 +87,8 @@ def image_page():
                 overall_confidence=result.get("confidence", 0.0),
                 real_probability=result.get("real_probability", 0.0),
                 fake_probability=result.get("fake_probability", 0.0),
+                risk_score=risk_info["risk_score"],
+                review_priority=risk_info["review_priority"],
                 annotated_path=result.get("annotated_image_path"),
                 analysis_mode=mode,
                 analysis_status=result.get("analysis_status"),
@@ -456,3 +472,377 @@ def video_page():
             return redirect(url_for("detect.video_page"))
 
     return render_template("detect/video.html", active_page="detect_video", result=None, scan=None)
+
+@detect_bp.route("/forensics", methods=["GET", "POST"])
+@login_required
+def forensics_page():
+    """AI Forensic Intelligence Center - Deep Multi-Domain Photographic Inspection"""
+    if request.method == "POST":
+        file = request.files.get("image") or request.files.get("file")
+        if not file or file.filename.strip() == "":
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "error": "No image file uploaded."}), 400
+            flash("Please upload a valid photographic image for forensic examination.", "error")
+            return redirect(url_for("detect.forensics_page"))
+
+        if not allowed_file(file.filename, Config.ALLOWED_IMAGE_EXTENSIONS):
+            err_msg = f"Unsupported file type. Supported formats: {', '.join(Config.ALLOWED_IMAGE_EXTENSIONS).upper()}."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "error": err_msg}), 400
+            flash(err_msg, "error")
+            return redirect(url_for("detect.forensics_page"))
+
+        scan_uuid = str(uuid.uuid4())
+        orig_filename = secure_filename(file.filename) or "evidence.jpg"
+        ext = orig_filename.rsplit(".", 1)[1].lower() if "." in orig_filename else "jpg"
+        saved_filename = f"forensic_{scan_uuid[:12]}.{ext}"
+        saved_path = os.path.join(current_app.config["UPLOAD_FOLDER"], saved_filename)
+
+        try:
+            file.save(saved_path)
+
+            from faceguard.core.forensics import analyze_full_forensics
+            forensics_report = analyze_full_forensics(saved_path, orig_filename, current_app.config["UPLOAD_FOLDER"])
+
+            log_audit("forensic_audit_performed", f"Forensic audit on {orig_filename}")
+
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({
+                    "success": True,
+                    "filename": saved_filename,
+                    "report": forensics_report
+                })
+
+            return render_template(
+                "detect/forensics.html",
+                active_page="detect_forensics",
+                report=forensics_report,
+                saved_filename=saved_filename,
+                orig_filename=orig_filename
+            )
+
+        except Exception as e:
+            current_app.logger.error(f"Forensic audit error: {str(e)}")
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "error": f"Forensic analysis failed: {str(e)}"}), 500
+            flash(f"Forensic analysis failed: {str(e)}", "error")
+            return redirect(url_for("detect.forensics_page"))
+
+    # Also support inspecting an existing scan via ?scan=<uuid>
+    scan_uuid = request.args.get("scan")
+    if scan_uuid:
+        scan = Scan.query.filter_by(scan_uuid=scan_uuid, user_id=current_user.id).first()
+        if scan and scan.media_type == "image":
+            target_path = os.path.join(current_app.config["UPLOAD_FOLDER"], scan.saved_filename)
+            if os.path.exists(target_path):
+                from faceguard.core.forensics import analyze_full_forensics
+                forensics_report = analyze_full_forensics(target_path, scan.original_filename, current_app.config["UPLOAD_FOLDER"])
+                return render_template(
+                    "detect/forensics.html",
+                    active_page="detect_forensics",
+                    report=forensics_report,
+                    saved_filename=scan.saved_filename,
+                    orig_filename=scan.original_filename,
+                    source_scan=scan
+                )
+
+    return render_template("detect/forensics.html", active_page="detect_forensics", report=None)
+
+@detect_bp.route("/risk", methods=["GET", "POST"])
+@login_required
+def risk_page():
+    """AI Risk Assessment Score & Review Priority Module"""
+    if request.method == "POST":
+        file = request.files.get("image") or request.files.get("file")
+        if not file or file.filename.strip() == "":
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "error": "No image file uploaded."}), 400
+            flash("Please choose an image file for AI Risk Assessment.", "error")
+            return redirect(url_for("detect.risk_page"))
+
+        if not allowed_file(file.filename, Config.ALLOWED_IMAGE_EXTENSIONS):
+            err_msg = f"Unsupported file type. Supported formats: {', '.join(Config.ALLOWED_IMAGE_EXTENSIONS).upper()}."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "error": err_msg}), 400
+            flash(err_msg, "error")
+            return redirect(url_for("detect.risk_page"))
+
+        scan_uuid = str(uuid.uuid4())
+        orig_filename = secure_filename(file.filename) or "upload.jpg"
+        ext = orig_filename.rsplit(".", 1)[1].lower() if "." in orig_filename else "jpg"
+        saved_filename = f"risk_{scan_uuid[:12]}.{ext}"
+        saved_path = os.path.join(current_app.config["UPLOAD_FOLDER"], saved_filename)
+
+        try:
+            file.save(saved_path)
+
+            from faceguard.core.detector import get_predictor
+            from faceguard.core.risk import compute_risk_assessment
+            predictor = get_predictor()
+            pred_res = predictor.predict(saved_path, mode="standard", save_artifacts=False)
+
+            forensics = pred_res.get("forensics", {})
+            risk_info = compute_risk_assessment(
+                cnn_prediction=pred_res.get("prediction", "REAL"),
+                cnn_confidence=pred_res.get("confidence", 0.0),
+                sensor_variance=forensics.get("sensor_noise_variance", 50.0) or 50.0,
+                fft_ratio=forensics.get("frequency_fft_ratio", 0.72) or 0.72,
+                ela_uniformity=forensics.get("ela_uniformity", 1.2) or 1.2,
+                chroma_score=forensics.get("chromatic_coherence", 0.88) or 0.88,
+                has_exif=False,
+                face_count=pred_res.get("face_count", 0)
+            )
+
+            log_audit("risk_assessment_computed", f"Risk score: {risk_info['risk_score']} ({risk_info['review_priority']}) for {orig_filename}")
+
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({
+                    "success": True,
+                    "filename": saved_filename,
+                    "prediction": pred_res,
+                    "risk": risk_info
+                })
+
+            return render_template(
+                "detect/risk.html",
+                active_page="detect_risk",
+                risk=risk_info,
+                prediction=pred_res,
+                saved_filename=saved_filename,
+                orig_filename=orig_filename
+            )
+
+        except Exception as e:
+            current_app.logger.error(f"Risk assessment error: {str(e)}")
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "error": f"Risk assessment failed: {str(e)}"}), 500
+            flash(f"Risk assessment failed: {str(e)}", "error")
+            return redirect(url_for("detect.risk_page"))
+
+    # Support inspecting past scan
+    scan_uuid = request.args.get("scan")
+    if scan_uuid:
+        scan = Scan.query.filter_by(scan_uuid=scan_uuid, user_id=current_user.id).first()
+        if scan:
+            from faceguard.core.risk import compute_risk_assessment
+            face_item = scan.faces[0] if scan.faces else None
+            risk_info = compute_risk_assessment(
+                cnn_prediction=scan.overall_prediction or "REAL",
+                cnn_confidence=scan.overall_confidence or 0.0,
+                sensor_variance=face_item.sensor_variance if face_item and face_item.sensor_variance else 50.0,
+                fft_ratio=face_item.fft_ratio if face_item and face_item.fft_ratio else 0.72,
+                ela_uniformity=1.2,
+                chroma_score=face_item.chroma_score if face_item and face_item.chroma_score else 0.88,
+                has_exif=False,
+                face_count=scan.face_count,
+                is_video=(scan.media_type == "video")
+            )
+            return render_template(
+                "detect/risk.html",
+                active_page="detect_risk",
+                risk=risk_info,
+                prediction={"prediction": scan.overall_prediction, "confidence": scan.overall_confidence},
+                saved_filename=scan.saved_filename,
+                orig_filename=scan.original_filename,
+                source_scan=scan
+            )
+
+    return render_template("detect/risk.html", active_page="detect_risk", risk=None)
+
+@detect_bp.route("/compare", methods=["GET", "POST"])
+@login_required
+def comparison_studio():
+    """Detection Comparison Studio - Side-by-Side Image A vs Image B Forensics"""
+    recent_user_scans = Scan.query.filter_by(user_id=current_user.id, media_type="image").order_by(Scan.created_at.desc()).limit(20).all()
+
+    if request.method == "POST":
+        file_a = request.files.get("image_a")
+        file_b = request.files.get("image_b")
+        scan_id_a = request.form.get("scan_id_a")
+        scan_id_b = request.form.get("scan_id_b")
+
+        path_a = None
+        path_b = None
+        name_a = "Image A"
+        name_b = "Image B"
+
+        # Resolve Image A
+        if file_a and file_a.filename.strip():
+            if not allowed_file(file_a.filename, Config.ALLOWED_IMAGE_EXTENSIONS):
+                flash("Image A has an unsupported file format.", "error")
+                return redirect(url_for("detect.comparison_studio"))
+            name_a = secure_filename(file_a.filename) or "Image_A.jpg"
+            saved_a = f"comp_a_{uuid.uuid4().hex[:10]}_{name_a}"
+            path_a = os.path.join(current_app.config["UPLOAD_FOLDER"], saved_a)
+            file_a.save(path_a)
+        elif scan_id_a:
+            s_a = Scan.query.filter_by(scan_uuid=scan_id_a, user_id=current_user.id).first()
+            if s_a:
+                path_a = os.path.join(current_app.config["UPLOAD_FOLDER"], s_a.saved_filename)
+                name_a = s_a.original_filename
+
+        # Resolve Image B
+        if file_b and file_b.filename.strip():
+            if not allowed_file(file_b.filename, Config.ALLOWED_IMAGE_EXTENSIONS):
+                flash("Image B has an unsupported file format.", "error")
+                return redirect(url_for("detect.comparison_studio"))
+            name_b = secure_filename(file_b.filename) or "Image_B.jpg"
+            saved_b = f"comp_b_{uuid.uuid4().hex[:10]}_{name_b}"
+            path_b = os.path.join(current_app.config["UPLOAD_FOLDER"], saved_b)
+            file_b.save(path_b)
+        elif scan_id_b:
+            s_b = Scan.query.filter_by(scan_uuid=scan_id_b, user_id=current_user.id).first()
+            if s_b:
+                path_b = os.path.join(current_app.config["UPLOAD_FOLDER"], s_b.saved_filename)
+                name_b = s_b.original_filename
+
+        if not path_a or not path_b or not os.path.exists(path_a) or not os.path.exists(path_b):
+            flash("Please provide two valid images or historical scans to compare.", "warning")
+            return redirect(url_for("detect.comparison_studio"))
+
+        try:
+            from faceguard.core.comparator import compare_two_images
+            comp_result = compare_two_images(path_a, path_b, current_app.config["UPLOAD_FOLDER"], name_a, name_b)
+
+            log_audit("comparison_performed", f"Compared {name_a} vs {name_b}")
+
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({
+                    "success": True,
+                    "comparison": comp_result
+                })
+
+            return render_template(
+                "detect/comparison.html",
+                active_page="detect_compare",
+                comparison=comp_result,
+                recent_scans=recent_user_scans
+            )
+
+        except Exception as e:
+            current_app.logger.error(f"Comparison error: {str(e)}")
+            flash(f"Comparison failed: {str(e)}", "error")
+            return redirect(url_for("detect.comparison_studio"))
+
+    return render_template(
+        "detect/comparison.html",
+        active_page="detect_compare",
+        comparison=None,
+        recent_scans=recent_user_scans
+    )
+
+@detect_bp.route("/compare/export", methods=["POST"])
+@login_required
+def export_comparison_pdf():
+    """Generates and downloads a comparison PDF dossier"""
+    try:
+        import json
+        from flask import send_file
+        from faceguard.utils.pdf import generate_comparison_pdf
+        data_json = request.form.get("comparison_data")
+        if not data_json:
+            flash("No comparison session data found to export.", "warning")
+            return redirect(url_for("detect.comparison_studio"))
+
+        comp_data = json.loads(data_json)
+        pdf_path = generate_comparison_pdf(comp_data)
+        return send_file(pdf_path, as_attachment=True, download_name="comparison_dossier.pdf")
+
+    except Exception as e:
+        current_app.logger.error(f"Failed to export comparison PDF: {str(e)}")
+        flash(f"PDF compilation failed: {str(e)}", "error")
+        return redirect(url_for("detect.comparison_studio"))
+
+@detect_bp.route("/batch", methods=["GET", "POST"])
+@login_required
+def batch_page():
+    """Batch Image Intelligence - Bulk Upload, Async Processing & Group Analytics"""
+    from faceguard.models.batch import BatchJob
+    user_batches = BatchJob.query.filter_by(user_id=current_user.id).order_by(BatchJob.created_at.desc()).limit(10).all()
+
+    if request.method == "POST":
+        files = request.files.getlist("images") or request.files.getlist("files")
+        valid_files = [f for f in files if f and f.filename.strip()]
+
+        if not valid_files:
+            flash("Please choose at least one image file for batch analysis.", "warning")
+            return redirect(url_for("detect.batch_page"))
+
+        # Configurable limit: Max 20 files per batch for 512MB RAM budget safety
+        MAX_BATCH_FILES = 20
+        if len(valid_files) > MAX_BATCH_FILES:
+            flash(f"Batch limit exceeded: You may upload a maximum of {MAX_BATCH_FILES} images per session.", "error")
+            return redirect(url_for("detect.batch_page"))
+
+        title = request.form.get("title", "").strip() or f"Batch Investigation ({len(valid_files)} items)"
+
+        try:
+            from faceguard.core.batch import process_batch_upload
+            batch_job = process_batch_upload(current_user.id, valid_files, current_app.config["UPLOAD_FOLDER"], title)
+            log_audit("batch_scan_completed", f"Batch {batch_job.batch_uuid[:8]} - {batch_job.total_files} items ({batch_job.threat_rate}% threats)")
+
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({
+                    "success": True,
+                    "batch_uuid": batch_job.batch_uuid,
+                    "redirect_url": url_for("detect.batch_detail_page", batch_uuid=batch_job.batch_uuid)
+                })
+
+            return redirect(url_for("detect.batch_detail_page", batch_uuid=batch_job.batch_uuid))
+
+        except Exception as e:
+            current_app.logger.error(f"Batch processing failed: {str(e)}")
+            flash(f"Batch processing error: {str(e)}", "error")
+            return redirect(url_for("detect.batch_page"))
+
+    return render_template(
+        "detect/batch.html",
+        active_page="detect_batch",
+        batch=None,
+        user_batches=user_batches
+    )
+
+@detect_bp.route("/batch/<batch_uuid>")
+@login_required
+def batch_detail_page(batch_uuid):
+    """View details, summary KPI widgets, and items breakdown for a specific batch"""
+    from faceguard.models.batch import BatchJob
+    batch = BatchJob.query.filter_by(batch_uuid=batch_uuid, user_id=current_user.id).first_or_404()
+    user_batches = BatchJob.query.filter_by(user_id=current_user.id).order_by(BatchJob.created_at.desc()).limit(10).all()
+
+    return render_template(
+        "detect/batch.html",
+        active_page="detect_batch",
+        batch=batch,
+        user_batches=user_batches
+    )
+
+@detect_bp.route("/batch/<batch_uuid>/report")
+@login_required
+def export_batch_pdf(batch_uuid):
+    """Generates and downloads a combined PDF report for the batch job"""
+    from flask import send_file
+    from faceguard.models.batch import BatchJob
+    from faceguard.utils.pdf import generate_batch_pdf
+
+    batch = BatchJob.query.filter_by(batch_uuid=batch_uuid, user_id=current_user.id).first_or_404()
+    pdf_path = generate_batch_pdf(batch)
+    return send_file(pdf_path, as_attachment=True, download_name=f"batch_report_{batch.batch_uuid[:8]}.pdf")
+
+@detect_bp.route("/batch/api/status/<batch_uuid>")
+@login_required
+def batch_status_api(batch_uuid):
+    """REST API polling endpoint for real-time batch progress"""
+    from faceguard.models.batch import BatchJob
+    batch = BatchJob.query.filter_by(batch_uuid=batch_uuid, user_id=current_user.id).first_or_404()
+
+    return jsonify({
+        "success": True,
+        "batch_uuid": batch.batch_uuid,
+        "status": batch.status,
+        "total_files": batch.total_files,
+        "processed_files": batch.processed_files,
+        "real_count": batch.real_count,
+        "fake_count": batch.fake_count,
+        "threat_rate": batch.threat_rate
+    })

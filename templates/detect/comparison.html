@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Comparison Studio &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Detection Comparison Studio{% endblock %}
+{% block page_subtitle %}Side-by-side forensic differentiation: compare original media, face crops, CNN activations, Grad-CAM heatmaps, and compression deltas{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Upload & Select Workspace -->
+    <div class="glass-card p-4 mb-4">
+        <form method="POST" action="{{ url_for('detect.comparison_studio') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row g-4 align-items-center">
+                <!-- Image A Selection -->
+                <div class="col-md-5">
+                    <div class="p-3 rounded border h-100" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary text-white rounded-circle p-2" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">A</span>
+                            <span class="fw-bold small" style="color: var(--text-primary);">Image A (Reference / Baseline)</span>
+                        </div>
+                        <input type="file" name="image_a" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm mb-2" style="background: var(--bg-card); color: var(--text-primary); border-color: var(--border-color);">
+                        
+                        {% if recent_scans %}
+                        <div class="small text-muted mb-1" style="font-size: 0.72rem;">Or select from your recent scans:</div>
+                        <select name="scan_id_a" class="form-select form-select-sm" style="background: var(--bg-card); color: var(--text-primary); border-color: var(--border-color);">
+                            <option value="">-- Choose previous scan --</option>
+                            {% for s in recent_scans %}
+                            <option value="{{ s.scan_uuid }}">{{ s.original_filename }} ({{ s.overall_prediction }} - {{ "%.1f"|format(s.overall_confidence) }}%)</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Center VS Divider -->
+                <div class="col-md-2 text-center">
+                    <div class="d-inline-flex flex-column align-items-center">
+                        <div class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-circle p-3 mb-2" style="font-size: 1rem; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">
+                            VS
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary px-3 shadow-sm">
+                            <i class="bi bi-intersect me-1"></i>Compare
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Image B Selection -->
+                <div class="col-md-5">
+                    <div class="p-3 rounded border h-100" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-info text-white rounded-circle p-2" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">B</span>
+                            <span class="fw-bold small" style="color: var(--text-primary);">Image B (Target / Suspect)</span>
+                        </div>
+                        <input type="file" name="image_b" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm mb-2" style="background: var(--bg-card); color: var(--text-primary); border-color: var(--border-color);">
+                        
+                        {% if recent_scans %}
+                        <div class="small text-muted mb-1" style="font-size: 0.72rem;">Or select from your recent scans:</div>
+                        <select name="scan_id_b" class="form-select form-select-sm" style="background: var(--bg-card); color: var(--text-primary); border-color: var(--border-color);">
+                            <option value="">-- Choose previous scan --</option>
+                            {% for s in recent_scans %}
+                            <option value="{{ s.scan_uuid }}">{{ s.original_filename }} ({{ s.overall_prediction }} - {{ "%.1f"|format(s.overall_confidence) }}%)</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if comparison %}
+    <!-- Comparative Header & PDF Export -->
+    <div class="glass-card p-4 mb-4" style="border-left: 4px solid {% if comparison.concordant %}#10b981{% else %}#f43f5e{% endif %} !important;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <span class="badge {% if comparison.concordant %}bg-success bg-opacity-25 text-success border border-success border-opacity-25{% else %}bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25{% endif %} mb-2">
+                    <i class="bi {% if comparison.concordant %}bi-check-circle{% else %}bi-exclamation-triangle{% endif %} me-1"></i>
+                    {{ 'Concordant Evaluation' if comparison.concordant else 'Divergent Verdict Detected' }}
+                </span>
+                <h3 class="h5 fw-bold mb-1" style="color: var(--text-primary);">
+                    Comparison: <span class="text-primary">{{ comparison.image_a.name }}</span> vs <span class="text-info">{{ comparison.image_b.name }}</span>
+                </h3>
+                <p class="small text-muted mb-0">
+                    {{ comparison.summary }}
+                </p>
+            </div>
+
+            <!-- Export Comparison PDF Form -->
+            <form method="POST" action="{{ url_for('detect.export_comparison_pdf') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="comparison_data" value='{{ comparison|tojson }}'>
+                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Download Comparison PDF Dossier
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Before & After Split Comparison Slider -->
+    <div class="glass-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+            <div>
+                <h4 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-sliders me-2 text-primary"></i>Interactive Split Comparison Slider
+                </h4>
+                <small class="text-muted">Drag the divider to visually inspect pixel alignment and boundary differences</small>
+            </div>
+            <div class="small text-muted">
+                <span class="text-primary fw-semibold"><i class="bi bi-arrow-left me-1"></i>Image A</span> &bull; 
+                <span class="text-info fw-semibold">Image B<i class="bi bi-arrow-right ms-1"></i></span>
+            </div>
+        </div>
+
+        <!-- Slider Container -->
+        <div class="comparison-slider-wrapper position-relative mx-auto rounded overflow-hidden shadow-sm" style="max-width: 600px; height: 380px; background: #000000; user-select: none;">
+            <!-- Bottom Image (Image B) -->
+            <img src="{{ url_for('static', filename='uploads/' + comparison.image_b.filename) }}" 
+                 alt="Image B" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;">
+            
+            <!-- Top Image (Image A, Clipped) -->
+            <div id="sliderClippedImage" style="position: absolute; top: 0; left: 0; width: 50%; height: 100%; overflow: hidden; border-right: 2px solid #ffffff; background: #000000;">
+                <img src="{{ url_for('static', filename='uploads/' + comparison.image_a.filename) }}" 
+                     alt="Image A" style="position: absolute; top: 0; left: 0; width: 600px; height: 100%; object-fit: contain;">
+            </div>
+
+            <!-- Draggable Range Input Overlay -->
+            <input type="range" min="0" max="100" value="50" id="comparisonRange" 
+                   style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; z-index: 10;">
+        </div>
+    </div>
+
+    <!-- Dual Evidence Gallery: Crops & Grad-CAM -->
+    <div class="row g-4 mb-4">
+        <!-- Face Crop A vs B -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h4 class="h6 fw-bold mb-3 pb-2 border-bottom" style="color: var(--text-primary); border-color: var(--border-color) !important;">
+                    <i class="bi bi-person-bounding-box me-2 text-primary"></i>Facial Crop Comparison
+                </h4>
+                <div class="row g-3 text-center">
+                    <div class="col-6">
+                        <div class="small fw-semibold text-muted mb-1">Image A Face Crop</div>
+                        <div class="rounded p-2" style="background: rgba(0,0,0,0.15); min-height: 180px; display: flex; align-items: center; justify-content: center;">
+                            {% if comparison.image_a.face_crop %}
+                            <img src="{{ url_for('static', filename='uploads/' + comparison.image_a.face_crop) }}" class="img-fluid rounded" style="max-height: 170px;" alt="Crop A">
+                            {% else %}
+                            <span class="small text-muted">No face localized</span>
+                            {% endif %}
+                        </div>
+                        <span class="badge {% if comparison.image_a.prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %} mt-2">
+                            {{ comparison.image_a.prediction }} ({{ "%.1f"|format(comparison.image_a.confidence) }}%)
+                        </span>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="small fw-semibold text-muted mb-1">Image B Face Crop</div>
+                        <div class="rounded p-2" style="background: rgba(0,0,0,0.15); min-height: 180px; display: flex; align-items: center; justify-content: center;">
+                            {% if comparison.image_b.face_crop %}
+                            <img src="{{ url_for('static', filename='uploads/' + comparison.image_b.face_crop) }}" class="img-fluid rounded" style="max-height: 170px;" alt="Crop B">
+                            {% else %}
+                            <span class="small text-muted">No face localized</span>
+                            {% endif %}
+                        </div>
+                        <span class="badge {% if comparison.image_b.prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %} mt-2">
+                            {{ comparison.image_b.prediction }} ({{ "%.1f"|format(comparison.image_b.confidence) }}%)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grad-CAM A vs B -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h4 class="h6 fw-bold mb-3 pb-2 border-bottom" style="color: var(--text-primary); border-color: var(--border-color) !important;">
+                    <i class="bi bi-layers-half me-2 text-warning"></i>Grad-CAM Neural Attention Comparison
+                </h4>
+                <div class="row g-3 text-center">
+                    <div class="col-6">
+                        <div class="small fw-semibold text-muted mb-1">Image A Heatmap (Layer4)</div>
+                        <div class="rounded p-2" style="background: rgba(0,0,0,0.15); min-height: 180px; display: flex; align-items: center; justify-content: center;">
+                            {% if comparison.image_a.gradcam %}
+                            <img src="{{ url_for('static', filename='uploads/' + comparison.image_a.gradcam) }}" class="img-fluid rounded" style="max-height: 170px;" alt="GradCAM A">
+                            {% else %}
+                            <span class="small text-muted">N/A</span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted d-block mt-2" style="font-size: 0.70rem;">Attention Focus Area</small>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="small fw-semibold text-muted mb-1">Image B Heatmap (Layer4)</div>
+                        <div class="rounded p-2" style="background: rgba(0,0,0,0.15); min-height: 180px; display: flex; align-items: center; justify-content: center;">
+                            {% if comparison.image_b.gradcam %}
+                            <img src="{{ url_for('static', filename='uploads/' + comparison.image_b.gradcam) }}" class="img-fluid rounded" style="max-height: 170px;" alt="GradCAM B">
+                            {% else %}
+                            <span class="small text-muted">N/A</span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted d-block mt-2" style="font-size: 0.70rem;">Attention Focus Area</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Comprehensive Forensic Metrics Table -->
+    <div class="glass-card p-4 mb-4">
+        <h4 class="h6 fw-bold mb-3 pb-2 border-bottom" style="color: var(--text-primary); border-color: var(--border-color) !important;">
+            <i class="bi bi-table me-2 text-info"></i>Multi-Domain Metrics Matrix
+        </h4>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
+                <thead class="small text-uppercase text-muted border-bottom" style="border-color: var(--border-color) !important; font-size: 0.72rem;">
+                    <tr>
+                        <th style="width: 25%;">Forensic Dimension</th>
+                        <th style="width: 30%;">Image A: {{ comparison.image_a.name }}</th>
+                        <th style="width: 30%;">Image B: {{ comparison.image_b.name }}</th>
+                        <th style="width: 15%;" class="text-end">Divergence Delta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">CNN Prediction Verdict</td>
+                        <td>
+                            <span class="badge {% if comparison.image_a.prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ comparison.image_a.prediction }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if comparison.image_b.prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ comparison.image_b.prediction }}
+                            </span>
+                        </td>
+                        <td class="text-end font-monospace">
+                            {% if comparison.concordant %}
+                            <span class="text-success"><i class="bi bi-check-all me-1"></i>Concordant</span>
+                            {% else %}
+                            <span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Divergent</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">Model Certainty</td>
+                        <td class="fw-bold" style="color: var(--text-primary);">{{ "%.1f"|format(comparison.image_a.confidence) }}%</td>
+                        <td class="fw-bold" style="color: var(--text-primary);">{{ "%.1f"|format(comparison.image_b.confidence) }}%</td>
+                        <td class="text-end font-monospace text-muted">&Delta; {{ comparison.conf_delta }}%</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">AI Risk Assessment Index</td>
+                        <td>
+                            <span class="badge" style="background: {{ comparison.image_a.risk.badge_bg }}; color: #ffffff;">
+                                {{ comparison.image_a.risk.risk_score }} ({{ comparison.image_a.risk.review_priority }})
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: {{ comparison.image_b.risk.badge_bg }}; color: #ffffff;">
+                                {{ comparison.image_b.risk.risk_score }} ({{ comparison.image_b.risk.review_priority }})
+                            </span>
+                        </td>
+                        <td class="text-end font-monospace text-muted">&Delta; {{ comparison.risk_delta }} pts</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">Image Dimensions</td>
+                        <td>{{ comparison.image_a.props.dimensions }} ({{ comparison.image_a.props.megapixels }} MP)</td>
+                        <td>{{ comparison.image_b.props.dimensions }} ({{ comparison.image_b.props.megapixels }} MP)</td>
+                        <td class="text-end font-monospace text-muted">Resolution Diff</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">File Size</td>
+                        <td>{{ comparison.image_a.props.file_size_kb }} KB</td>
+                        <td>{{ comparison.image_b.props.file_size_kb }} KB</td>
+                        <td class="text-end font-monospace text-muted">
+                            &Delta; {{ "%.1f"|format((comparison.image_a.props.file_size_kb - comparison.image_b.props.file_size_kb)|abs) }} KB
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">Sensor Noise Texture</td>
+                        <td>{{ comparison.image_a.forensics.get('sensor_noise_variance', 'N/A') }}</td>
+                        <td>{{ comparison.image_b.forensics.get('sensor_noise_variance', 'N/A') }}</td>
+                        <td class="text-end font-monospace text-muted">Laplacian Grain</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="fw-semibold text-muted">EXIF Hardware Tags</td>
+                        <td>
+                            {% if comparison.image_a.exif.has_exif %}
+                            <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ comparison.image_a.exif.fields|length }} tags</span>
+                            {% else %}
+                            <span class="text-muted fst-italic">Stripped</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if comparison.image_b.exif.has_exif %}
+                            <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ comparison.image_b.exif.fields|length }} tags</span>
+                            {% else %}
+                            <span class="text-muted fst-italic">Stripped</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end font-monospace text-muted">Provenance</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scientific Distinction Disclaimer -->
+    <div class="glass-card p-4" style="background: rgba(14, 165, 233, 0.04); border-color: rgba(14, 165, 233, 0.2) !important;">
+        <div class="d-flex align-items-start gap-3">
+            <div class="flex-shrink-0 text-info fs-3">
+                <i class="bi bi-info-circle"></i>
+            </div>
+            <div>
+                <h4 class="h6 fw-bold text-info mb-1">Methodological Principle: Visual Difference vs Evidence of Manipulation</h4>
+                <p class="small text-muted mb-0" style="line-height: 1.55;">
+                    Visual discrepancies between Image A and Image B (including pixel deltas, compression artifacts, and color balance shifts) frequently arise from benign photographic processes such as camera ISO changes, smartphone HDR tone mapping, or social media compression. 
+                    <strong>Such differences do not inherently signify synthetic generation.</strong> 
+                    Evidence of manipulation is established only when divergence is accompanied by synthetic feature activations in our ResNet-18 model, non-uniform ELA splice lines, or periodic 2D-FFT frequency lattices.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+// Interactive Split Slider Logic
+document.addEventListener('DOMContentLoaded', function() {
+    const range = document.getElementById('comparisonRange');
+    const clipped = document.getElementById('sliderClippedImage');
+    if (range && clipped) {
+        range.addEventListener('input', function() {
+            clipped.style.width = this.value + "%";
+        });
+    }
+});
+</script>
+{% endblock %}

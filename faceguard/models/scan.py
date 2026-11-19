@@ -26,6 +26,8 @@ class Scan(db.Model):
     overall_confidence = db.Column(db.Float, default=0.0)
     real_probability = db.Column(db.Float, default=0.0)
     fake_probability = db.Column(db.Float, default=0.0)
+    risk_score = db.Column(db.Float, default=0.0)
+    review_priority = db.Column(db.String(40), default="Lower Review Priority")
 
     # Annotated result image / video thumbnail path
     annotated_path = db.Column(db.String(255), nullable=True)

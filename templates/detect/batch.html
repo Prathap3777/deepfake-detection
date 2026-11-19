@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Intelligence &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Batch Image Intelligence{% endblock %}
+{% block page_subtitle %}High-throughput bulk image analysis: automated queueing, parallel face detection, aggregate threat indexing, and combined reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Upload Dropzone Card -->
+    <div class="glass-card p-4 mb-4">
+        <form method="POST" action="{{ url_for('detect.batch_page') }}" enctype="multipart/form-data" id="batchUploadForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row g-3 align-items-center mb-3">
+                <div class="col-md-7">
+                    <label class="form-label small fw-bold text-muted mb-1">Investigation Session Title</label>
+                    <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Audit Case #2026-Batch-Alpha" 
+                           style="background: var(--bg-surface); color: var(--text-primary); border-color: var(--border-color);">
+                </div>
+                <div class="col-md-5 text-md-end">
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 small">
+                        <i class="bi bi-info-circle me-1"></i>Max 20 images per batch
+                    </span>
+                </div>
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <div class="p-4 rounded border-2 border-dashed text-center position-relative mb-3" 
+                 style="background: var(--bg-surface); border-color: var(--border-color); cursor: pointer;"
+                 onclick="document.getElementById('batchFileInput').click()">
+                <div class="upload-icon-circle mx-auto mb-2" style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--accent-sky); font-size: 1.4rem;">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </div>
+                <h5 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Drag &amp; Drop Multiple Images Here, or Browse</h5>
+                <p class="small text-muted mb-0">Select up to 20 JPG, PNG, or WebP files for batch evaluation.</p>
+                <input type="file" id="batchFileInput" name="images" multiple accept=".jpg,.jpeg,.png,.webp" class="d-none" onchange="handleBatchFilesSelected(this)">
+            </div>
+
+            <!-- Dynamic File Queue Display -->
+            <div id="fileQueueSection" class="d-none mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-bold" style="color: var(--text-primary);"><i class="bi bi-list-check me-1"></i>Upload Queue (<span id="queueCount">0</span> files)</span>
+                    <button type="button" class="btn btn-sm text-danger p-0" onclick="clearBatchQueue()" style="font-size: 0.75rem;">Clear Queue</button>
+                </div>
+                <div id="fileQueueList" class="p-2 rounded border" style="background: var(--bg-card); border-color: var(--border-color) !important; max-height: 140px; overflow-y: auto;"></div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-sm btn-primary px-4 shadow-sm" id="startBatchBtn">
+                    <i class="bi bi-cpu me-1"></i>Start Batch Processing
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if batch %}
+    <!-- Batch Job Header Banner -->
+    <div class="glass-card p-4 mb-4" style="border-left: 4px solid var(--accent-sky) !important;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 mb-2">
+                    <i class="bi bi-check2-all me-1"></i>Batch Execution Complete
+                </span>
+                <h3 class="h5 fw-bold mb-1" style="color: var(--text-primary);">
+                    {{ batch.title }} <span class="small text-muted font-monospace">(#{{ batch.batch_uuid[:8] }})</span>
+                </h3>
+                <small class="text-muted">
+                    Analyzed {{ batch.total_files }} images &bull; Completed {{ batch.completed_at.strftime('%b %d, %Y %H:%M UTC') if batch.completed_at else '' }}
+                </small>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('detect.export_batch_pdf', batch_uuid=batch.batch_uuid) }}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Download Combined PDF Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Total Files -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Batch Volume</div>
+                    <div class="h4 fw-bold my-1" style="color: var(--text-primary);">{{ batch.total_files }}</div>
+                    <div class="small text-muted">Total images queued</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-images"></i></div>
+            </div>
+        </div>
+
+        <!-- Authentic Verified -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Authentic Media</div>
+                    <div class="h4 fw-bold my-1 text-success">{{ batch.real_count }}</div>
+                    <div class="small text-muted">Verified genuine captures</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-green"><i class="bi bi-patch-check"></i></div>
+            </div>
+        </div>
+
+        <!-- Manipulated (Fake) -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Manipulated Flagged</div>
+                    <div class="h4 fw-bold my-1 text-danger">{{ batch.fake_count }}</div>
+                    <div class="small text-muted">Deepfake synthesis detected</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+            </div>
+        </div>
+
+        <!-- Threat Rate -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Batch Threat Index</div>
+                    <div class="h4 fw-bold my-1 {% if batch.threat_rate > 20.0 %}text-danger{% else %}text-success{% endif %}">{{ batch.threat_rate }}%</div>
+                    <div class="small text-muted">Proportion of compromised files</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-amber"><i class="bi bi-pie-chart"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Items Breakdown Table -->
+    <div class="glass-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+            <div>
+                <h4 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-collection me-2 text-primary"></i>Individual File Predictions
+                </h4>
+                <small class="text-muted">Item-by-item localization, neural classification, and risk evaluation</small>
+            </div>
+            <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill small">{{ batch.items|length }} Items</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle table-hover mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
+                <thead class="small text-uppercase text-muted border-bottom" style="border-color: var(--border-color) !important; font-size: 0.72rem;">
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Evidence File</th>
+                        <th>Faces</th>
+                        <th>CNN Classification</th>
+                        <th>Certainty</th>
+                        <th>Risk Priority</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in batch.items %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="font-monospace text-muted">{{ loop.index }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded overflow-hidden flex-shrink-0" style="width: 38px; height: 38px; background: rgba(0,0,0,0.2);">
+                                    {% if item.saved_filename %}
+                                    <img src="{{ url_for('static', filename='uploads/' + item.saved_filename) }}" style="width: 100%; height: 100%; object-fit: cover;" alt="Thumb">
+                                    {% else %}
+                                    <i class="bi bi-file-earmark fs-4 text-muted d-flex align-items-center justify-content-center h-100"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold small text-truncate" style="color: var(--text-primary); max-width: 220px;" title="{{ item.original_filename }}">
+                                        {{ item.original_filename }}
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.70rem;">{{ item.status }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary bg-opacity-25 text-secondary small">
+                                {{ item.face_count }} face(s)
+                            </span>
+                        </td>
+                        <td>
+                            {% if item.prediction == 'REAL' %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small">
+                                <i class="bi bi-patch-check-fill me-1"></i>REAL
+                            </span>
+                            {% elif item.prediction == 'FAKE' %}
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 small">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>FAKE
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary bg-opacity-25 text-secondary small">{{ item.prediction }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold small" style="color: var(--text-primary);">
+                            {{ "%.1f"|format(item.confidence) }}%
+                        </td>
+                        <td>
+                            <span class="badge {% if item.review_priority == 'High Review Priority' %}bg-danger bg-opacity-25 text-danger{% elif item.review_priority == 'Elevated Review Priority' %}bg-warning bg-opacity-25 text-warning{% else %}bg-success bg-opacity-25 text-success{% endif %} small">
+                                {{ item.review_priority }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            {% if item.scan_id %}
+                            <a href="{{ url_for('history.view_scan', scan_uuid=item.scan.scan_uuid if item.scan else '') }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.72rem; padding: 2px 8px;">
+                                <i class="bi bi-eye me-1"></i>Inspect
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Batch Investigations List -->
+    {% if user_batches %}
+    <div class="glass-card p-4">
+        <h4 class="h6 fw-bold mb-3 pb-2 border-bottom" style="color: var(--text-primary); border-color: var(--border-color) !important;">
+            <i class="bi bi-clock-history me-2 text-warning"></i>Your Recent Batch Investigation Sessions
+        </h4>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
+                <thead class="small text-uppercase text-muted border-bottom" style="border-color: var(--border-color) !important; font-size: 0.72rem;">
+                    <tr>
+                        <th>Session Title</th>
+                        <th>Files</th>
+                        <th>Authentic</th>
+                        <th>Manipulated</th>
+                        <th>Threat Rate</th>
+                        <th>Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in user_batches %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td>
+                            <div class="fw-semibold small" style="color: var(--text-primary);">{{ b.title }}</div>
+                            <span class="text-muted font-monospace" style="font-size: 0.70rem;">#{{ b.batch_uuid[:8] }}</span>
+                        </td>
+                        <td>{{ b.total_files }} files</td>
+                        <td class="text-success">{{ b.real_count }}</td>
+                        <td class="text-danger">{{ b.fake_count }}</td>
+                        <td>
+                            <span class="badge {% if b.threat_rate > 20 %}bg-danger bg-opacity-25 text-danger{% else %}bg-success bg-opacity-25 text-success{% endif %} small">
+                                {{ b.threat_rate }}%
+                            </span>
+                        </td>
+                        <td class="text-muted" style="font-size: 0.75rem;">{{ b.created_at.strftime('%b %d, %H:%M') if b.created_at else '' }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('detect.batch_detail_page', batch_uuid=b.batch_uuid) }}" class="btn btn-sm btn-outline-info" style="font-size: 0.72rem; padding: 2px 8px;">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+function handleBatchFilesSelected(input) {
+    const list = document.getElementById('fileQueueList');
+    const queueSection = document.getElementById('fileQueueSection');
+    const queueCount = document.getElementById('queueCount');
+
+    if (input.files && input.files.length > 0) {
+        list.innerHTML = '';
+        queueCount.textContent = input.files.length;
+        queueSection.classList.remove('d-none');
+
+        Array.from(input.files).forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'd-flex align-items-center justify-content-between py-1 border-bottom';
+            item.style.borderColor = 'var(--border-color)';
+            item.style.fontSize = '0.74rem';
+            item.innerHTML = `<span><strong>${index + 1}.</strong> ${file.name}</span><span class="text-muted">${(file.size / 1024).toFixed(1)} KB</span>`;
+            list.appendChild(item);
+        });
+    }
+}
+
+function clearBatchQueue() {
+    document.getElementById('batchFileInput').value = '';
+    document.getElementById('fileQueueList').innerHTML = '';
+    document.getElementById('fileQueueSection').classList.add('d-none');
+}
+</script>
+{% endblock %}

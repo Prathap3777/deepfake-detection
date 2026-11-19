@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}AI Risk Assessment &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}AI Risk Assessment &amp; Priority Score{% endblock %}
+{% block page_subtitle %}Explainable multi-signal threat evaluation combining convolutional neural logits, physical sensor noise, compression error, and spectral Fourier decay{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Upload Card -->
+    <div class="glass-card p-4 mb-4">
+        <form method="POST" action="{{ url_for('detect.risk_page') }}" enctype="multipart/form-data" id="riskForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="upload-icon-circle flex-shrink-0" style="width: 48px; height: 48px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #f59e0b; font-size: 1.3rem;">
+                            <i class="bi bi-speedometer2"></i>
+                        </div>
+                        <div>
+                            <h4 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Calculate Explainable Risk Score &amp; Review Priority</h4>
+                            <p class="small text-muted mb-0">Analyzes multi-orthogonal signals to establish human review priority (0–100 score).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-flex gap-2 justify-content-lg-end">
+                        <label class="btn btn-sm btn-outline-secondary mb-0" for="riskFileInput" style="cursor: pointer;">
+                            <i class="bi bi-image me-1"></i>Select File
+                        </label>
+                        <input type="file" id="riskFileInput" name="image" accept=".jpg,.jpeg,.png,.webp" class="d-none" required onchange="handleRiskFileSelected(this)">
+                        <button type="submit" class="btn btn-sm btn-primary" id="submitRiskBtn">
+                            <i class="bi bi-shield-shaded me-1"></i>Assess Threat Level
+                        </button>
+                    </div>
+                    <div id="selectedRiskFileName" class="small text-muted mt-1 text-truncate" style="max-width: 280px; margin-left: auto;"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if risk %}
+    <!-- Master Risk Score Header Banner -->
+    <div class="glass-card p-4 mb-4" style="border-left: 5px solid {{ risk.badge_bg }} !important;">
+        <div class="row align-items-center g-4">
+            <!-- Left: Big Score Dial -->
+            <div class="col-md-4 col-xl-3 text-center border-end" style="border-color: var(--border-color) !important;">
+                <div class="d-inline-flex flex-column align-items-center justify-content-center p-3 rounded-circle" 
+                     style="width: 140px; height: 140px; background: rgba(0,0,0,0.15); border: 4px solid {{ risk.badge_bg }};">
+                    <span class="display-5 fw-bold" style="color: {{ risk.badge_bg }}; line-height: 1;">
+                        {{ risk.risk_score }}
+                    </span>
+                    <span class="text-uppercase fw-bold text-muted small mt-1" style="font-size: 0.68rem; letter-spacing: 0.5px;">
+                        Risk Index / 100
+                    </span>
+                </div>
+                <div class="mt-2">
+                    <span class="badge px-3 py-1 rounded-pill text-uppercase fw-bold small" 
+                          style="background: {{ risk.badge_bg }}; color: #ffffff;">
+                        {{ risk.review_priority }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Right: Executive Summary & Context -->
+            <div class="col-md-8 col-xl-9">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 small">
+                        File: {{ orig_filename }}
+                    </span>
+                    <span class="small text-muted">
+                        ResNet-18 Classification: 
+                        <strong class="{% if prediction.prediction == 'REAL' %}text-success{% else %}text-danger{% endif %}">
+                            {{ prediction.prediction }} ({{ "%.1f"|format(prediction.confidence) }}%)
+                        </strong>
+                    </span>
+                </div>
+                <h3 class="h6 fw-bold mb-2" style="color: var(--text-primary);">
+                    Executive Forensic Risk Evaluation
+                </h3>
+                <p class="small text-muted mb-3" style="line-height: 1.6;">
+                    {{ risk.executive_summary }}
+                </p>
+
+                <!-- 5-Factor Mini Progress Stack -->
+                <div class="row g-2 pt-2 border-top" style="border-color: var(--border-color) !important;">
+                    <div class="col-sm">
+                        <div class="text-muted small" style="font-size: 0.70rem;">Neural Signal (Max 45)</div>
+                        <div class="fw-semibold small" style="color: var(--text-primary);">{{ risk.neural_contribution }} pts</div>
+                    </div>
+                    <div class="col-sm">
+                        <div class="text-muted small" style="font-size: 0.70rem;">Sensor Grain (Max 20)</div>
+                        <div class="fw-semibold small" style="color: var(--text-primary);">{{ risk.sensor_contribution }} pts</div>
+                    </div>
+                    <div class="col-sm">
+                        <div class="text-muted small" style="font-size: 0.70rem;">2D-FFT Grid (Max 15)</div>
+                        <div class="fw-semibold small" style="color: var(--text-primary);">{{ risk.fft_contribution }} pts</div>
+                    </div>
+                    <div class="col-sm">
+                        <div class="text-muted small" style="font-size: 0.70rem;">ELA Compression (Max 12)</div>
+                        <div class="fw-semibold small" style="color: var(--text-primary);">{{ risk.ela_contribution }} pts</div>
+                    </div>
+                    <div class="col-sm">
+                        <div class="text-muted small" style="font-size: 0.70rem;">Metadata Context (Max 8)</div>
+                        <div class="fw-semibold small" style="color: var(--text-primary);">{{ risk.exif_contribution }} pts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dual Lists: Contributing Factors vs Mitigating Factors -->
+    <div class="row g-4 mb-4">
+        <!-- Threat Factors (Increased Risk) -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h4 class="h6 fw-bold mb-0 text-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Risk Contributing Factors
+                        </h4>
+                        <small class="text-muted">Orthogonal signals that elevated the review score</small>
+                    </div>
+                    <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill small">
+                        {{ risk.contributing_factors|length }} Factors
+                    </span>
+                </div>
+
+                {% if risk.contributing_factors %}
+                <div class="list-group list-group-flush">
+                    {% for item in risk.contributing_factors %}
+                    <div class="list-group-item px-0 py-2 bg-transparent border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="small fw-bold" style="color: var(--text-primary);">{{ item.factor }}</span>
+                            <span class="badge bg-danger bg-opacity-25 text-danger small font-monospace">+{{ item.points }} pts</span>
+                        </div>
+                        <div class="small text-muted">{{ item.detail }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-shield-check fs-3 text-success d-block mb-1"></i>
+                    No significant risk contributors detected. Media exhibits coherent authentic characteristics.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mitigating Factors (Decreased Risk) -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h4 class="h6 fw-bold mb-0 text-success">
+                            <i class="bi bi-shield-fill-check me-2"></i>Authenticity &amp; Mitigating Factors
+                        </h4>
+                        <small class="text-muted">Evidence supporting photographic authenticity</small>
+                    </div>
+                    <span class="badge bg-success bg-opacity-25 text-success rounded-pill small">
+                        {{ risk.mitigating_factors|length }} Factors
+                    </span>
+                </div>
+
+                {% if risk.mitigating_factors %}
+                <div class="list-group list-group-flush">
+                    {% for item in risk.mitigating_factors %}
+                    <div class="list-group-item px-0 py-2 bg-transparent border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="small fw-bold" style="color: var(--text-primary);">{{ item.factor }}</span>
+                            <span class="badge bg-success bg-opacity-25 text-success small font-monospace"><i class="bi bi-check2"></i></span>
+                        </div>
+                        <div class="small text-muted">{{ item.detail }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-x-circle fs-3 text-danger d-block mb-1"></i>
+                    No mitigating authenticity factors identified across analyzed domains.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Missing Evidence & Academic Methodology Panel -->
+    <div class="row g-4 mb-4">
+        <!-- Missing Evidence -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 h-100">
+                <h4 class="h6 fw-bold mb-2" style="color: var(--text-primary);">
+                    <i class="bi bi-search me-2 text-warning"></i>Missing / Unobservable Evidence
+                </h4>
+                <p class="small text-muted mb-3">
+                    In forensic compliance, transparent disclosure of unobservable domains is required to avoid over-confident classifications:
+                </p>
+                <ul class="list-unstyled mb-0 small">
+                    {% for miss in risk.missing_evidence %}
+                    <li class="py-1 text-muted d-flex align-items-start gap-2">
+                        <i class="bi bi-dash-circle text-secondary mt-1 flex-shrink-0"></i>
+                        <span>{{ miss }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Academic Methodology Disclosure -->
+        <div class="col-lg-7">
+            <div class="glass-card p-4 h-100" style="background: rgba(14, 165, 233, 0.04); border-color: rgba(14, 165, 233, 0.2) !important;">
+                <h4 class="h6 fw-bold text-info mb-2">
+                    <i class="bi bi-book me-2"></i>Scoring Methodology &amp; Mathematical Formulation
+                </h4>
+                <p class="small text-muted mb-2" style="line-height: 1.55;">
+                    The <strong>FACEGUARD AI Risk Assessment Score</strong> is an explainable linear composite index:
+                    $$\text{Score} = w_{\text{CNN}} \cdot S_{\text{CNN}} + w_{\text{Sensor}} \cdot S_{\text{Sensor}} + w_{\text{FFT}} \cdot S_{\text{FFT}} + w_{\text{ELA}} \cdot S_{\text{ELA}} + w_{\text{EXIF}} \cdot S_{\text{EXIF}}$$
+                    where weights satisfy \(\sum w_i = 100\).
+                </p>
+                <p class="small text-muted mb-0" style="line-height: 1.55;">
+                    <strong>Crucial Academic Principle:</strong> Risk Score measures <em>investigative review priority</em>, not simple posterior probability. Raw convolutional neural network softmax scores are inherently uncalibrated on out-of-distribution inputs. By combining orthogonal physical domains (Laplacian sensor noise, Fourier lattice grids, and ELA deltas), the system prevents correlated double-counting while surfacing actionable explanation vectors.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+function handleRiskFileSelected(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        document.getElementById('selectedRiskFileName').textContent = file.name + " (" + (file.size / 1024).toFixed(1) + " KB)";
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}AI Forensic Chat Assistant &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}AI Forensic Chat Assistant{% endblock %}
+{% block page_subtitle %}Context-aware conversational explanations grounded strictly in verified scan records and physical optics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1.25rem;
+        min-height: calc(100vh - 190px);
+    }
+    @media (max-width: 991px) {
+        .chat-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+    .chat-sidebar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .chat-main {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .chat-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.4);
+    }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        max-height: calc(100vh - 360px);
+    }
+    .chat-bubble {
+        max-width: 85%;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        position: relative;
+    }
+    .chat-bubble-user {
+        align-self: flex-end;
+        background: linear-gradient(135deg, #0284c7, #2563eb);
+        color: #ffffff;
+        border-bottom-right-radius: 2px;
+    }
+    .chat-bubble-assistant {
+        align-self: flex-start;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        border-bottom-left-radius: 2px;
+    }
+    .chat-bubble-assistant p:last-child {
+        margin-bottom: 0;
+    }
+    .chat-bubble-assistant table {
+        width: 100%;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .chat-bubble-assistant th, .chat-bubble-assistant td {
+        border: 1px solid var(--border-color);
+        padding: 6px 10px;
+    }
+    .chat-bubble-assistant th {
+        background: rgba(2, 6, 23, 0.5);
+    }
+    .chat-input-area {
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.3);
+    }
+    .session-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
+    }
+    .session-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-primary);
+    }
+    .session-item.active {
+        background: rgba(2, 132, 199, 0.15);
+        color: var(--accent-sky);
+        border-color: rgba(2, 132, 199, 0.3);
+        font-weight: 600;
+    }
+    .prompt-pill {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.76rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        margin-bottom: 6px;
+    }
+    .prompt-pill:hover {
+        background: rgba(2, 132, 199, 0.15);
+        color: var(--accent-sky);
+        border-color: rgba(2, 132, 199, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <div class="chat-layout">
+
+        <!-- ============================================================== -->
+        <!-- LEFT COLUMN: SESSIONS, CONTEXT SELECTOR & QUICK PROMPTS        -->
+        <!-- ============================================================== -->
+        <div class="chat-sidebar">
+            <!-- New Chat Session Button -->
+            <form action="{{ url_for('chat.create_new_session') }}" method="POST">
+                <input type="hidden" name="scan_uuid" value="{{ active_session.scan.scan_uuid if active_session and active_session.scan else '' }}">
+                <button type="submit" class="btn btn-primary w-100 rounded-pill d-flex align-items-center justify-content-center gap-2 py-2">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>New Consultation</span>
+                </button>
+            </form>
+
+            <!-- Investigation Context Card -->
+            <div class="p-3 rounded" style="background: rgba(2, 6, 23, 0.5); border: 1px solid var(--border-color);">
+                <label class="form-label text-uppercase fw-bold text-muted small mb-2" style="font-size: 0.7rem;">
+                    <i class="bi bi-pin-angle me-1 text-primary"></i>Investigation Context
+                </label>
+
+                <!-- Scan Selector Dropdown -->
+                <form action="{{ url_for('chat.chat_index') }}" method="GET" id="contextForm">
+                    <select name="scan_uuid" class="form-select form-select-sm bg-dark text-light border-secondary mb-2" onchange="document.getElementById('contextForm').submit();" style="font-size: 0.8rem;">
+                        <option value="">-- No Specific Scan (General Mode) --</option>
+                        {% for s in user_scans %}
+                        <option value="{{ s.scan_uuid }}" {% if active_session and active_session.scan_id == s.id %}selected{% endif %}>
+                            {{ s.original_filename[:18] }} ({{ s.overall_prediction }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+
+                {% if active_session and active_session.scan %}
+                <div class="p-2 rounded mt-2" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); font-size: 0.75rem;">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate text-light" style="max-width: 150px;">{{ active_session.scan.original_filename }}</span>
+                        <span class="badge {% if active_session.scan.overall_prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %} bg-opacity-25 {% if active_session.scan.overall_prediction == 'REAL' %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.68rem;">
+                            {{ active_session.scan.overall_prediction }} ({{ "%.0f"|format(active_session.scan.overall_confidence) }}%)
+                        </span>
+                    </div>
+                    <div class="text-muted d-flex justify-content-between">
+                        <span>Risk: {{ active_session.scan.risk_score or 0.0 }}/100</span>
+                        <span>Faces: {{ active_session.scan.face_count }}</span>
+                    </div>
+                    <div class="mt-2 pt-2 border-top d-flex gap-2" style="border-color: var(--border-color) !important;">
+                        <a href="{{ url_for('history.view_scan', scan_uuid=active_session.scan.scan_uuid) }}" class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size: 0.68rem;">
+                            <i class="bi bi-eye me-1"></i>Inspect Scan
+                        </a>
+                        <a href="{{ url_for('reports.generate_report', scan_uuid=active_session.scan.scan_uuid) }}" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.68rem;">
+                            <i class="bi bi-file-pdf me-1"></i>PDF Dossier
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                    Select an investigation to anchor explanations to verified empirical data.
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Quick Inquiry Suggestions -->
+            <div>
+                <div class="text-uppercase fw-bold text-muted small mb-2" style="font-size: 0.7rem;">
+                    <i class="bi bi-lightning-charge me-1 text-warning"></i>Quick Forensic Inquiries
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="prompt-pill" onclick="sendPrompt('Why was my image classified as fake?')">Why was it classified as fake?</span>
+                    <span class="prompt-pill" onclick="sendPrompt('Explain the Grad-CAM heatmap.')">Explain the heatmap</span>
+                    <span class="prompt-pill" onclick="sendPrompt('What does my confidence score mean?')">Confidence score meaning</span>
+                    <span class="prompt-pill" onclick="sendPrompt('Explain the forensic findings (ELA and FFT).')">ELA & FFT findings</span>
+                    <span class="prompt-pill" onclick="sendPrompt('Explain my risk assessment score.')">Risk assessment breakdown</span>
+                    <span class="prompt-pill" onclick="sendPrompt('Summarize my detection report.')">Executive summary</span>
+                </div>
+            </div>
+
+            <!-- Recent Sessions List -->
+            <div class="mt-auto">
+                <div class="text-uppercase fw-bold text-muted small mb-2" style="font-size: 0.7rem;">
+                    <i class="bi bi-clock-history me-1"></i>Consultation History
+                </div>
+                <div class="overflow-y-auto" style="max-height: 160px;">
+                    {% for ses in user_sessions %}
+                    <div class="d-flex align-items-center">
+                        <a href="{{ url_for('chat.chat_index', session_uuid=ses.session_uuid) }}" class="session-item flex-grow-1 text-truncate {% if active_session and active_session.id == ses.id %}active{% endif %}">
+                            <span class="text-truncate">{{ ses.title }}</span>
+                        </a>
+                        <form action="{{ url_for('chat.delete_session', session_uuid=ses.session_uuid) }}" method="POST" onsubmit="return confirm('Delete this consultation session?');">
+                            <button type="submit" class="btn btn-sm text-muted p-1 hover-danger border-0 bg-transparent" title="Delete Session">
+                                <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0" style="font-size: 0.75rem;">No previous sessions.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- MAIN CHAT STREAM & INPUT                                      -->
+        <!-- ============================================================== -->
+        <div class="chat-main">
+            <!-- Chat Header -->
+            <div class="chat-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-inline-flex p-2 rounded-circle" style="background: rgba(2, 132, 199, 0.15); color: var(--accent-sky);">
+                        <i class="bi bi-robot fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            {{ active_session.title if active_session else 'Forensic Chat Assistant' }}
+                        </h2>
+                        <small class="text-muted" style="font-size: 0.72rem;">
+                            <span class="text-success"><i class="bi bi-record-fill me-1"></i>Active</span> &bull; 
+                            Grounded in PyTorch ResNet-18 &bull; Physical Optics &bull; Zero Hallucination
+                        </small>
+                    </div>
+                </div>
+
+                <div class="d-none d-md-flex align-items-center gap-2">
+                    <span class="badge bg-secondary bg-opacity-25 text-light small px-2 py-1">
+                        <i class="bi bi-shield-check me-1 text-primary"></i>Strict Tenant Privacy
+                    </span>
+                </div>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="chat-messages" id="chatMessages">
+                {% if active_session and active_session.messages %}
+                    {% for msg in active_session.messages %}
+                    <div class="chat-bubble {% if msg.sender == 'user' %}chat-bubble-user{% else %}chat-bubble-assistant{% endif %}">
+                        <div class="d-flex align-items-center justify-content-between mb-1 pb-1 border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important; font-size: 0.7rem; opacity: 0.85;">
+                            <span class="fw-bold">
+                                {% if msg.sender == 'user' %}
+                                <i class="bi bi-person me-1"></i>You
+                                {% else %}
+                                <i class="bi bi-shield-check me-1 text-primary"></i>FaceGuard AI Assistant
+                                {% endif %}
+                            </span>
+                            <span>{{ msg.created_at.strftime('%H:%M UTC') if msg.created_at else '' }}</span>
+                        </div>
+                        <div class="message-content">
+                            {# Render plain text or simple markdown formatting #}
+                            {{ msg.content | replace('\n', '<br>') | safe }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="chat-input-area">
+                <form id="chatForm" onsubmit="handleChatSubmit(event);">
+                    <input type="hidden" id="sessionUuid" value="{{ active_session.session_uuid if active_session else '' }}">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="chatInput" 
+                            class="form-control bg-dark text-light border-secondary" 
+                            placeholder="Ask a question about this scan, Grad-CAM, ELA, or frequency findings..." 
+                            autocomplete="off"
+                            required
+                        >
+                        <button class="btn btn-primary px-4 d-flex align-items-center gap-2" type="submit" id="sendBtn">
+                            <i class="bi bi-send-fill"></i>
+                            <span class="d-none d-sm-inline">Send</span>
+                        </button>
+                    </div>
+                </form>
+                <div class="d-flex justify-content-between align-items-center mt-2 px-1 text-muted" style="font-size: 0.72rem;">
+                    <span><i class="bi bi-lock-fill me-1 text-warning"></i>Private & Local: Answers strictly from cryptographic database telemetry.</span>
+                    <span id="typingIndicator" class="text-primary d-none"><i class="bi bi-arrow-repeat spin me-1"></i>Analyzing forensic telemetry...</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sessionUuid = document.getElementById('sessionUuid').value;
+    const typingIndicator = document.getElementById('typingIndicator');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Scroll to bottom on load
+    function scrollToBottom() {
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+    scrollToBottom();
+
+    // Quick Prompt trigger
+    function sendPrompt(text) {
+        if (!chatInput) return;
+        chatInput.value = text;
+        handleChatSubmit(new Event('submit'));
+    }
+
+    async function handleChatSubmit(e) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text || !sessionUuid) return;
+
+        // Append user bubble immediately
+        appendBubble('user', text, new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ' UTC');
+        chatInput.value = '';
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
+        typingIndicator.classList.remove('d-none');
+        scrollToBottom();
+
+        try {
+            const response = await fetch("{{ url_for('chat.api_send_message') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token() if csrf_token else '' }}"
+                },
+                body: JSON.stringify({
+                    session_uuid: sessionUuid,
+                    message: text
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                appendBubble('assistant', data.reply, data.timestamp);
+            } else {
+                appendBubble('assistant', '⚠️ ' + (data.message || 'Error communicating with forensic engine.'), 'Now');
+            }
+        } catch (err) {
+            appendBubble('assistant', '⚠️ Network communication error. Please try again.', 'Now');
+        } finally {
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            typingIndicator.classList.add('d-none');
+            chatInput.focus();
+            scrollToBottom();
+        }
+    }
+
+    function appendBubble(sender, content, time) {
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`;
+        
+        const header = document.createElement('div');
+        header.className = 'd-flex align-items-center justify-content-between mb-1 pb-1 border-bottom';
+        header.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        header.style.fontSize = '0.7rem';
+        header.style.opacity = '0.85';
+        
+        header.innerHTML = `
+            <span class="fw-bold">
+                <i class="bi bi-${sender === 'user' ? 'person' : 'shield-check text-primary'} me-1"></i>
+                ${sender === 'user' ? 'You' : 'FaceGuard AI Assistant'}
+            </span>
+            <span>${time}</span>
+        `;
+        
+        const body = document.createElement('div');
+        body.className = 'message-content';
+        // Format newlines
+        body.innerHTML = content.replace(/\n/g, '<br>');
+
+        bubble.appendChild(header);
+        bubble.appendChild(body);
+        chatMessages.appendChild(bubble);
+        scrollToBottom();
+    }
+</script>
+{% endblock %}

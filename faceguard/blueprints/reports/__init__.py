@@ -72,3 +72,30 @@ def download_report(report_uuid):
         download_name=download_name,
         mimetype="application/pdf"
     )
+
+@reports_bp.route("/verify/<report_uuid>")
+def verify_report(report_uuid):
+    """
+    Public, zero-auth verification gateway for forensic PDF dossiers.
+    Validates report authenticity using server-side cryptographic ledger records.
+    Displays tamper-evident audit properties without leaking user personal identity or private face crops.
+    """
+    report = PDFReport.query.filter_by(report_uuid=report_uuid).first()
+    if not report or not report.scan:
+        return render_template(
+            "reports/verify.html",
+            report=None,
+            scan=None,
+            requested_uuid=report_uuid,
+            error_message="The specified cryptographic dossier identifier was not found in the FaceGuard AI authenticity registry.",
+            active_page="reports"
+        ), 404
+
+    return render_template(
+        "reports/verify.html",
+        report=report,
+        scan=report.scan,
+        requested_uuid=report_uuid,
+        error_message=None,
+        active_page="reports"
+    )

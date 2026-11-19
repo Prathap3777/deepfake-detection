@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Forensic Intelligence Center &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}AI Forensic Intelligence Center{% endblock %}
+{% block page_subtitle %}Deep multi-domain photographic inspection: EXIF metadata, compression variance, spectral Fourier density, and sensor noise texture{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Upload Card -->
+    <div class="glass-card p-4 mb-4">
+        <form method="POST" action="{{ url_for('detect.forensics_page') }}" enctype="multipart/form-data" id="forensicsForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="upload-icon-circle flex-shrink-0" style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--accent-sky); font-size: 1.3rem;">
+                            <i class="bi bi-fingerprint"></i>
+                        </div>
+                        <div>
+                            <h4 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Upload Photographic Evidence for Forensic Audit</h4>
+                            <p class="small text-muted mb-0">Inspect container headers, EXIF tags, JPEG compression delta, and 2D-FFT Fourier lattice grids.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-flex gap-2 justify-content-lg-end">
+                        <label class="btn btn-sm btn-outline-secondary mb-0" for="forensicFileInput" style="cursor: pointer;">
+                            <i class="bi bi-file-earmark-image me-1"></i>Choose File
+                        </label>
+                        <input type="file" id="forensicFileInput" name="image" accept=".jpg,.jpeg,.png,.webp" class="d-none" required onchange="handleFileSelected(this)">
+                        <button type="submit" class="btn btn-sm btn-primary" id="submitBtn">
+                            <i class="bi bi-search me-1"></i>Run Forensic Audit
+                        </button>
+                    </div>
+                    <div id="selectedFileName" class="small text-muted mt-1 text-truncate" style="max-width: 280px; margin-left: auto;"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if report %}
+    <!-- Forensic Inspection Header Summary -->
+    <div class="glass-card p-4 mb-4" style="border-left: 4px solid var(--accent-sky) !important;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 mb-2">
+                    <i class="bi bi-file-earmark-check me-1"></i>Audit Completed
+                </span>
+                <h3 class="h5 fw-bold mb-1" style="color: var(--text-primary);">
+                    Forensic Examination Report: <span class="text-primary">{{ orig_filename }}</span>
+                </h3>
+                <div class="small text-muted">
+                    <span><i class="bi bi-aspect-ratio me-1"></i>{{ report.file_props.dimensions }} ({{ report.file_props.megapixels }} MP)</span> &bull;
+                    <span><i class="bi bi-hdd me-1"></i>{{ report.file_props.file_size_kb }} KB</span> &bull;
+                    <span><i class="bi bi-palette me-1"></i>{{ report.file_props.format }} ({{ report.file_props.mode }})</span>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('detect.forensics_page') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise me-1"></i>New Audit
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forensic Metric Highlights -->
+    <div class="row g-3 mb-4">
+        <!-- EXIF Status -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">EXIF Hardware Tags</div>
+                    <div class="h4 fw-bold my-1 {% if report.exif_props.has_exif %}text-success{% else %}text-warning{% endif %}">
+                        {{ report.exif_props.fields|length if report.exif_props.has_exif else 'Stripped / None' }}
+                    </div>
+                    <div class="small text-muted">
+                        {% if report.exif_props.has_exif %}Hardware metadata found{% else %}No camera tags present{% endif %}
+                    </div>
+                </div>
+                <div class="kpi-icon-wrap {% if report.exif_props.has_exif %}kpi-icon-green{% else %}kpi-icon-amber{% endif %}">
+                    <i class="bi bi-camera"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- ELA Uniformity -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Compression Uniformity (ELA)</div>
+                    <div class="h4 fw-bold my-1 {% if report.ela_stats.uniformity_ratio > 2.5 %}text-danger{% else %}text-success{% endif %}">
+                        {{ report.ela_stats.uniformity_ratio }}
+                    </div>
+                    <div class="small text-muted">Mean Delta: {{ report.ela_stats.mean_error }} (Scale: 15x)</div>
+                </div>
+                <div class="kpi-icon-wrap {% if report.ela_stats.uniformity_ratio > 2.5 %}kpi-icon-red{% else %}kpi-icon-green{% endif %}">
+                    <i class="bi bi-layers-half"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2D-FFT High/Low Ratio -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">2D-FFT Spectral Density</div>
+                    <div class="h4 fw-bold my-1" style="color: var(--accent-sky);">
+                        {{ report.fft_stats.high_to_low_ratio }}
+                    </div>
+                    <div class="small text-muted">Radial frequency decay</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue">
+                    <i class="bi bi-soundwave"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Laplacian Sensor Variance -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Sensor Noise Variance</div>
+                    <div class="h4 fw-bold my-1 {% if report.noise_analysis.laplacian_variance < 15.0 %}text-warning{% else %}text-success{% endif %}">
+                        {{ report.noise_analysis.laplacian_variance }}
+                    </div>
+                    <div class="small text-muted">{{ report.noise_analysis.rating }}</div>
+                </div>
+                <div class="kpi-icon-wrap {% if report.noise_analysis.laplacian_variance < 15.0 %}kpi-icon-amber{% else %}kpi-icon-green{% endif %}">
+                    <i class="bi bi-grain"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Triple Evidence Visualizer Gallery -->
+    <div class="row g-4 mb-4">
+        <!-- 1. Original Evidence -->
+        <div class="col-lg-4">
+            <div class="glass-card p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="small fw-bold text-uppercase text-muted" style="font-size: 0.72rem;">
+                        <i class="bi bi-image me-1 text-primary"></i>1. Original Evidence
+                    </div>
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary small">Input</span>
+                </div>
+                <div class="text-center rounded overflow-hidden" style="background: rgba(0,0,0,0.2); min-height: 240px; display: flex; align-items: center; justify-content: center;">
+                    <img src="{{ url_for('static', filename='uploads/' + saved_filename) }}" class="img-fluid rounded" style="max-height: 240px; object-fit: contain;" alt="Evidence">
+                </div>
+                <div class="small text-muted mt-2 text-center" style="font-size: 0.74rem;">
+                    {{ report.file_props.dimensions }} &bull; {{ report.file_props.file_size_kb }} KB
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Error Level Analysis Heatmap -->
+        <div class="col-lg-4">
+            <div class="glass-card p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="small fw-bold text-uppercase text-muted" style="font-size: 0.72rem;">
+                        <i class="bi bi-layers me-1 text-danger"></i>2. Error Level Analysis (ELA)
+                    </div>
+                    <span class="badge bg-danger bg-opacity-25 text-danger small">15x Amplified</span>
+                </div>
+                <div class="text-center rounded overflow-hidden" style="background: rgba(0,0,0,0.2); min-height: 240px; display: flex; align-items: center; justify-content: center;">
+                    <img src="{{ url_for('static', filename='uploads/' + report.ela_filename) }}" class="img-fluid rounded" style="max-height: 240px; object-fit: contain;" alt="ELA Heatmap">
+                </div>
+                <div class="small text-muted mt-2" style="font-size: 0.74rem;">
+                    {{ report.ela_stats.interpretation }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 2D-FFT Frequency Spectrum -->
+        <div class="col-lg-4">
+            <div class="glass-card p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="small fw-bold text-uppercase text-muted" style="font-size: 0.72rem;">
+                        <i class="bi bi-soundwave me-1 text-info"></i>3. 2D-FFT Fourier Spectrum
+                    </div>
+                    <span class="badge bg-info bg-opacity-25 text-info small">Frequency Domain</span>
+                </div>
+                <div class="text-center rounded overflow-hidden" style="background: rgba(0,0,0,0.2); min-height: 240px; display: flex; align-items: center; justify-content: center;">
+                    <img src="{{ url_for('static', filename='uploads/' + report.fft_filename) }}" class="img-fluid rounded" style="max-height: 240px; object-fit: contain;" alt="FFT Spectrum">
+                </div>
+                <div class="small text-muted mt-2" style="font-size: 0.74rem;">
+                    {{ report.fft_stats.interpretation }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forensic Findings Summary Matrix -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h4 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-clipboard-pulse me-2 text-primary"></i>Forensic Diagnostics Findings
+                        </h4>
+                        <small class="text-muted">Automated integrity evaluation across 4 forensic dimensions</small>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-25 text-primary rounded-pill small">{{ report.findings|length }} Checks</span>
+                </div>
+
+                <div class="list-group list-group-flush">
+                    {% for item in report.findings %}
+                    <div class="list-group-item px-0 py-3 bg-transparent border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="small fw-bold" style="color: var(--text-primary);">{{ item.title }}</span>
+                            <span class="badge {% if item.status == 'PASS' %}bg-success bg-opacity-25 text-success border border-success border-opacity-25{% elif item.status == 'WARNING' %}bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25{% else %}bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25{% endif %} small">
+                                {{ item.status }}
+                            </span>
+                        </div>
+                        <div class="small text-muted mb-1">{{ item.detail }}</div>
+                        <div class="text-muted" style="font-size: 0.70rem;">
+                            <i class="bi bi-tag me-1"></i>Domain: <strong>{{ item.category }}</strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- EXIF Photographic Metadata Explorer -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h4 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-camera me-2 text-warning"></i>EXIF Metadata Explorer
+                        </h4>
+                        <small class="text-muted">Hardware &amp; lens parameters</small>
+                    </div>
+                    <span class="badge {% if report.exif_props.has_exif %}bg-success bg-opacity-25 text-success{% else %}bg-secondary bg-opacity-25 text-secondary{% endif %} small">
+                        {{ report.exif_props.fields|length }} Tags
+                    </span>
+                </div>
+
+                {% if report.exif_props.has_exif %}
+                <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-sm align-middle mb-0" style="color: var(--text-secondary); font-size: 0.78rem;">
+                        <tbody>
+                            {% for tag, val in report.exif_props.fields.items() %}
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <td class="fw-semibold text-muted text-nowrap" style="width: 40%;">{{ tag }}</td>
+                                <td class="text-break" style="color: var(--text-primary);">{{ val }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-camera-slash fs-2 d-block mb-2 text-secondary"></i>
+                    <h5 class="h6 fw-bold mb-1" style="color: var(--text-primary);">No Embedded EXIF Tags</h5>
+                    <p class="small text-muted px-2" style="font-size: 0.76rem;">
+                        This file does not contain photographic camera hardware tags (e.g. Camera Make, Lens, Aperture). This is characteristic of synthetic AI images or images transmitted through social platforms (WhatsApp, X, Instagram) that strip metadata for bandwidth optimization and privacy.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Forensic Limitations & Academic Disclaimer Card -->
+    <div class="glass-card p-4" style="background: rgba(14, 165, 233, 0.04); border-color: rgba(14, 165, 233, 0.2) !important;">
+        <div class="d-flex align-items-start gap-3">
+            <div class="flex-shrink-0 text-info fs-3">
+                <i class="bi bi-shield-exclamation"></i>
+            </div>
+            <div>
+                <h4 class="h6 fw-bold text-info mb-1">Scientific Methodology &amp; Diagnostic Limitations</h4>
+                <p class="small text-muted mb-1" style="line-height: 1.55;">
+                    Digital forensic diagnostics (Error Level Analysis, 2D-FFT spectral decay, sensor noise variance, and EXIF inspection) provide empirical indications of digital processing history. 
+                    <strong>Important academic disclaimer:</strong> Missing EXIF metadata, compression variance, or smooth skin textures <em>do not</em> constitute definitive mathematical proof of generative AI manipulation. Legitimate consumer photography (such as smartphone HDR algorithms, beautification filters, and social media re-saving) can exhibit similar characteristics. Forensic findings must always be evaluated in conjunction with our convolutional neural network (CNN) predictions and spatial Grad-CAM activations.
+                </p>
+                <div class="small text-info fw-semibold">
+                    <i class="bi bi-check-circle me-1"></i>Complies with IEEE &amp; ACM digital media integrity guidelines.
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+function handleFileSelected(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        document.getElementById('selectedFileName').textContent = file.name + " (" + (file.size / 1024).toFixed(1) + " KB)";
+    }
+}
+</script>
+{% endblock %}
