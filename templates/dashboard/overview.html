@@ -8,320 +8,701 @@
 <div class="container-fluid px-0">
 
     <!-- ============================================================== -->
-    <!-- WELCOME BANNER                                                 -->
+    <!-- 1. PROFESSIONAL WELCOME HERO BANNER                            -->
     <!-- ============================================================== -->
-    <div class="glass-card p-4 mb-4 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);">
-        <div class="row align-items-center">
+    <div class="welcome-hero-banner p-4 p-md-5 mb-4 position-relative">
+        <div class="row align-items-center position-relative" style="z-index: 2;">
             <div class="col-lg-8">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3);">
-                    <i class="bi bi-shield-check" style="color: var(--accent-sky);"></i>
-                    <span class="small fw-semibold" style="color: var(--accent-sky);">FaceGuard AI Engine v2.0 Active</span>
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+                    style="background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.35);">
+                    <span class="spinner-grow spinner-grow-sm text-info" style="width: 0.5rem; height: 0.5rem;"
+                        role="status"></span>
+                    <span class="small fw-bold" style="color: var(--color-cyan); letter-spacing: 0.04em;">FaceGuard AI
+                        Engine v2.0 Active</span>
                 </div>
-                <h2 class="h4 fw-bold mb-1" style="color: var(--text-primary);">Welcome back, {{ current_user.full_name }}</h2>
-                <p class="small mb-0" style="color: var(--text-secondary); max-width: 680px;">
-                    Monitor facial authenticity, detect AI-generated manipulations, and inspect explainable Grad-CAM heatmaps across single portraits, crowd images, and video media.
+                <h1 class="h3 fw-extrabold mb-2" style="color: var(--text-primary); letter-spacing: -0.02em;">
+                    Welcome back, {{ current_user.full_name }}
+                </h1>
+                <p class="small mb-0" style="color: var(--text-secondary); max-width: 650px; line-height: 1.6;">
+                    Multi-domain forensic defense is operating normally. Monitor facial authenticity, inspect Grad-CAM
+                    residual heatmaps, and analyze synthetic anomalies across portraits, crowd scenes, and video
+                    keyframes.
                 </p>
             </div>
-            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                <a href="{{ url_for('detect.image_page') }}" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-semibold">
-                    <i class="bi bi-cloud-arrow-up me-2"></i>New Face Scan
-                </a>
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                <div class="d-flex align-items-center justify-content-lg-end gap-2 flex-wrap">
+                    <a href="{{ url_for('detect.image_page') }}"
+                        class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <span>New Face Scan</span>
+                    </a>
+                    <a href="{{ url_for('chat.chat_index') }}"
+                        class="btn btn-outline-info rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-chat-square-text"></i>
+                        <span>AI Assistant</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- KPI METRIC CARDS                                               -->
+    <!-- 2. VIBRANT KPI METRIC CARDS WITH ANIMATED COUNTING NUMBERS     -->
     <!-- ============================================================== -->
     <div class="row g-3 mb-4">
-        <!-- 1. Total Scans -->
+        <!-- Card 1: Total Scans (Cyan / Blue Gradient) -->
         <div class="col-sm-6 col-xl-3">
-            <div class="glass-card kpi-widget">
-                <div>
-                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem; letter-spacing: 0.05em;">Total Scans</div>
-                    <div class="h3 fw-bold my-1" style="color: var(--text-primary);">{{ total_scans }}</div>
-                    <div class="small text-muted"><i class="bi bi-activity me-1 text-primary"></i>All-time queries</div>
+            <div class="kpi-stat-card kpi-card-cyan h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="text-uppercase fw-bold text-muted small"
+                        style="font-size: 0.72rem; letter-spacing: 0.06em;">
+                        Total Scans
+                    </div>
+                    <div class="kpi-icon-wrap kpi-icon-blue shadow-sm">
+                        <i class="bi bi-cpu"></i>
+                    </div>
                 </div>
-                <div class="kpi-icon-wrap kpi-icon-blue">
-                    <i class="bi bi-cpu"></i>
+                <div>
+                    <div class="h2 fw-extrabold mb-1" style="color: var(--text-primary);">
+                        <span class="counter-number" data-target="{{ total_scans }}">{{ total_scans }}</span>
+                    </div>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <i class="bi bi-activity text-info"></i>
+                        <span>All-time forensic queries</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- 2. Authentic (Real) -->
+        <!-- Card 2: Verified Authentic (Emerald / Teal Gradient) -->
         <div class="col-sm-6 col-xl-3">
-            <div class="glass-card kpi-widget">
+            <div class="kpi-stat-card kpi-card-green h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="text-uppercase fw-bold text-muted small"
+                        style="font-size: 0.72rem; letter-spacing: 0.06em;">
+                        Verified Authentic
+                    </div>
+                    <div class="kpi-icon-wrap kpi-icon-green shadow-sm">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                </div>
                 <div>
-                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem; letter-spacing: 0.05em;">Verified Authentic</div>
-                    <div class="h3 fw-bold my-1 text-success">{{ real_scans }}</div>
+                    <div class="h2 fw-extrabold mb-1 text-success">
+                        <span class="counter-number" data-target="{{ real_scans }}">{{ real_scans }}</span>
+                    </div>
                     <div class="small text-muted">
                         {% if total_scans > 0 %}
-                            <span class="text-success fw-semibold">{{ ((real_scans / total_scans) * 100)|round(1) }}%</span> of scans
+                        <span class="text-success fw-semibold">{{ ((real_scans / total_scans) * 100)|round(1) }}%</span>
+                        of analyzed media
                         {% else %}
-                            <span class="text-muted">No scans yet</span>
+                        <span>No scan telemetry yet</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="kpi-icon-wrap kpi-icon-green">
-                    <i class="bi bi-shield-check"></i>
-                </div>
             </div>
         </div>
 
-        <!-- 3. Manipulated (Fake) -->
+        <!-- Card 3: Deepfakes Flagged (Pink / Rose Gradient) -->
         <div class="col-sm-6 col-xl-3">
-            <div class="glass-card kpi-widget">
+            <div class="kpi-stat-card kpi-card-pink h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="text-uppercase fw-bold text-muted small"
+                        style="font-size: 0.72rem; letter-spacing: 0.06em;">
+                        Deepfakes Flagged
+                    </div>
+                    <div class="kpi-icon-wrap kpi-icon-red shadow-sm">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
                 <div>
-                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem; letter-spacing: 0.05em;">Deepfakes Flagged</div>
-                    <div class="h3 fw-bold my-1 text-danger">{{ fake_scans }}</div>
+                    <div class="h2 fw-extrabold mb-1 text-danger">
+                        <span class="counter-number" data-target="{{ fake_scans }}">{{ fake_scans }}</span>
+                    </div>
                     <div class="small text-muted">
                         {% if total_scans > 0 %}
-                            <span class="text-danger fw-semibold">{{ ((fake_scans / total_scans) * 100)|round(1) }}%</span> manipulation rate
+                        <span class="text-danger fw-semibold">{{ ((fake_scans / total_scans) * 100)|round(1) }}%</span>
+                        threat detection rate
                         {% else %}
-                            <span class="text-muted">No scans yet</span>
+                        <span>No threats detected</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="kpi-icon-wrap kpi-icon-red">
-                    <i class="bi bi-exclamation-triangle"></i>
-                </div>
             </div>
         </div>
 
-        <!-- 4. Avg Model Confidence -->
+        <!-- Card 4: Neural Confidence (Purple / Violet Gradient) -->
         <div class="col-sm-6 col-xl-3">
-            <div class="glass-card kpi-widget">
-                <div>
-                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem; letter-spacing: 0.05em;">Avg Confidence</div>
-                    <div class="h3 fw-bold my-1" style="color: var(--accent-sky);">{{ avg_confidence }}%</div>
-                    <div class="small text-muted"><i class="bi bi-graph-up me-1 text-info"></i>CNN certainty</div>
+            <div class="kpi-stat-card kpi-card-purple h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="text-uppercase fw-bold text-muted small"
+                        style="font-size: 0.72rem; letter-spacing: 0.06em;">
+                        Avg Confidence
+                    </div>
+                    <div class="kpi-icon-wrap kpi-icon-amber shadow-sm">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
                 </div>
-                <div class="kpi-icon-wrap kpi-icon-amber">
-                    <i class="bi bi-lightning-charge"></i>
+                <div>
+                    <div class="h2 fw-extrabold mb-1" style="color: #c084fc;">
+                        <span class="counter-number" data-target="{{ avg_confidence }}" data-decimals="1">{{
+                            avg_confidence }}</span>%
+                    </div>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <i class="bi bi-graph-up text-primary"></i>
+                        <span>ResNet-18 model certainty ({{ avg_confidence }}%)</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- QUICK DETECTION ACTION TILES                                   -->
+    <!-- 3. ANIMATED CIRCULAR RISK SCORE & QUICK ACTION CARDS ROW        -->
     <!-- ============================================================== -->
-    <h3 class="h6 fw-bold mb-3 text-uppercase" style="letter-spacing: 0.06em; color: var(--text-muted);">
-        <i class="bi bi-grid-fill me-2" style="color: var(--accent-sky);"></i>Detection Engines
-    </h3>
-
     <div class="row g-3 mb-4">
-        <!-- Tile 1: Single Image Detection -->
-        <div class="col-md-6 col-xl-3">
-            <a href="{{ url_for('detect.image_page') }}" class="action-tile h-100">
-                <div>
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="kpi-icon-wrap kpi-icon-blue">
-                            <i class="bi bi-image"></i>
-                        </div>
-                        <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill small">Standard</span>
+        <!-- Left: Animated Circular AI Risk Assessment Score -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between text-center">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom"
+                    style="border-color: var(--border-color) !important;">
+                    <div class="fw-bold small" style="color: var(--text-primary);">
+                        <i class="bi bi-speedometer2 me-2" style="color: {{ risk_color }};"></i>AI Risk Assessment Index
                     </div>
-                    <h4 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Single Image Scan</h4>
-                    <p class="small mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
-                        Inspect facial portraits using ResNet-18 and multi-domain forensic frequency analysis.
-                    </p>
+                    <span class="badge rounded-pill px-3 py-1 small"
+                        style="background: rgba(255, 255, 255, 0.06); color: {{ risk_color }}; border: 1px solid {{ risk_color }};">
+                        {{ risk_priority }}
+                    </span>
                 </div>
-                <div class="d-flex align-items-center gap-1 mt-3 small fw-semibold" style="color: var(--accent-sky);">
-                    <span>Launch Scanner</span>
-                    <i class="bi bi-arrow-right"></i>
+
+                <!-- Animated SVG Dial -->
+                <div class="risk-dial-container my-2">
+                    <svg class="risk-circle-svg" viewBox="0 0 150 150">
+                        <!-- Background Circle -->
+                        <circle class="risk-circle-bg" cx="75" cy="75" r="60"></circle>
+                        <!-- Animated Progress Circle -->
+                        <circle id="riskProgressBar" class="risk-circle-bar" cx="75" cy="75" r="60"
+                            stroke="{{ risk_color }}" stroke-dasharray="376.99" stroke-dashoffset="376.99"
+                            data-score="{{ avg_risk_score }}"></circle>
+                    </svg>
+                    <!-- Inner Content -->
+                    <div class="risk-center-content">
+                        <span class="h2 fw-extrabold mb-0" style="color: var(--text-primary);">
+                            <span class="counter-number" data-target="{{ avg_risk_score }}" data-decimals="1">{{
+                                avg_risk_score }}</span>
+                        </span>
+                        <span class="text-muted small" style="font-size: 0.72rem;">out of 100</span>
+                    </div>
                 </div>
-            </a>
+
+                <!-- Risk Factor Stack Breakdown -->
+                <div class="mt-3 text-start p-3 rounded"
+                    style="background: rgba(2, 6, 23, 0.4); border: 1px solid var(--border-color);">
+                    <div class="d-flex justify-content-between small text-muted mb-1" style="font-size: 0.72rem;">
+                        <span>CNN Classification (45%)</span>
+                        <span class="fw-semibold text-light">Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mb-1" style="font-size: 0.72rem;">
+                        <span>PRNU Sensor Noise (20%)</span>
+                        <span class="fw-semibold text-light">Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted" style="font-size: 0.72rem;">
+                        <span>2D-FFT + ELA Delta (27%)</span>
+                        <span class="fw-semibold text-light">Active</span>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <a href="{{ url_for('detect.risk_page') }}"
+                        class="btn btn-sm btn-outline-secondary w-100 rounded-pill py-2" style="font-size: 0.8rem;">
+                        <i class="bi bi-shield-shaded me-1"></i>Open Full Risk Analyzer
+                    </a>
+                </div>
+            </div>
         </div>
 
-        <!-- Tile 2: Multiple Face Detection -->
-        <div class="col-md-6 col-xl-3">
-            <a href="{{ url_for('detect.multi_face_page') }}" class="action-tile h-100">
-                <div>
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="kpi-icon-wrap kpi-icon-green">
-                            <i class="bi bi-people"></i>
-                        </div>
-                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill small">Batch Cropping</span>
+        <!-- Right: 4 Colorful Quick-Action Cards -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom"
+                    style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-grid-fill me-2" style="color: var(--color-cyan);"></i>Forensic Detection
+                            Launchers
+                        </h2>
+                        <small class="text-muted">High-precision neural artifact and physical frequency
+                            pipelines</small>
                     </div>
-                    <h4 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Multiple Faces</h4>
-                    <p class="small mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
-                        Automatically detect, crop, and separately predict authenticity for every face in crowd photos.
-                    </p>
+                    <span class="badge bg-secondary bg-opacity-25 text-light px-3 py-1 rounded-pill small">4
+                        Engines</span>
                 </div>
-                <div class="d-flex align-items-center gap-1 mt-3 small fw-semibold" style="color: var(--accent-emerald);">
-                    <span>Launch Multi-Face</span>
-                    <i class="bi bi-arrow-right"></i>
-                </div>
-            </a>
-        </div>
 
-        <!-- Tile 3: Video Detection -->
-        <div class="col-md-6 col-xl-3">
-            <a href="{{ url_for('detect.video_page') }}" class="action-tile h-100">
-                <div>
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="kpi-icon-wrap kpi-icon-amber">
-                            <i class="bi bi-camera-video"></i>
-                        </div>
-                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 rounded-pill small">Frame Sampler</span>
+                <div class="row g-3">
+                    <!-- Action 1: Single Image Detection -->
+                    <div class="col-md-6">
+                        <a href="{{ url_for('detect.image_page') }}" class="quick-action-card qa-card-cyan">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="kpi-icon-wrap kpi-icon-blue"
+                                        style="width: 42px; height: 42px; font-size: 1.2rem;">
+                                        <i class="bi bi-image"></i>
+                                    </div>
+                                    <span
+                                        class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill small">ResNet-18</span>
+                                </div>
+                                <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Single Image Scan</h3>
+                                <p class="small text-muted mb-0" style="font-size: 0.8rem; line-height: 1.5;">
+                                    Deep facial crop inference with dual Softmax output and boundary seam detection.
+                                </p>
+                            </div>
+                            <div class="d-flex align-items-center gap-1 mt-3 small fw-semibold text-info arrow-glide">
+                                <span>Launch Engine</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </a>
                     </div>
-                    <h4 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Video Deepfake</h4>
-                    <p class="small mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
-                        Extract video frames at 1 fps, detect facial crops, and compute aggregated manipulation timestamps.
-                    </p>
-                </div>
-                <div class="d-flex align-items-center gap-1 mt-3 small fw-semibold" style="color: var(--accent-amber);">
-                    <span>Launch Video Scan</span>
-                    <i class="bi bi-arrow-right"></i>
-                </div>
-            </a>
-        </div>
 
-        <!-- Tile 4: Grad-CAM Explainable AI -->
-        <div class="col-md-6 col-xl-3">
-            <a href="{{ url_for('detect.gradcam_page') }}" class="action-tile h-100">
-                <div>
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="kpi-icon-wrap kpi-icon-red">
-                            <i class="bi bi-layers-half"></i>
-                        </div>
-                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill small">Explainable AI</span>
+                    <!-- Action 2: Multiple Face Detection -->
+                    <div class="col-md-6">
+                        <a href="{{ url_for('detect.multi_face_page') }}" class="quick-action-card qa-card-emerald">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="kpi-icon-wrap kpi-icon-green"
+                                        style="width: 42px; height: 42px; font-size: 1.2rem;">
+                                        <i class="bi bi-people"></i>
+                                    </div>
+                                    <span
+                                        class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill small">Crowd
+                                        Cropper</span>
+                                </div>
+                                <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Multiple Faces</h3>
+                                <p class="small text-muted mb-0" style="font-size: 0.8rem; line-height: 1.5;">
+                                    Localize and independently classify every distinct face within group photographs.
+                                </p>
+                            </div>
+                            <div
+                                class="d-flex align-items-center gap-1 mt-3 small fw-semibold text-success arrow-glide">
+                                <span>Launch Multi-Face</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </a>
                     </div>
-                    <h4 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Grad-CAM Heatmap</h4>
-                    <p class="small mb-0" style="color: var(--text-secondary); font-size: 0.82rem;">
-                        Inspect gradient activation maps from CNN conv layers to visualize facial decision hotspots.
-                    </p>
+
+                    <!-- Action 3: Video Detection -->
+                    <div class="col-md-6">
+                        <a href="{{ url_for('detect.video_page') }}" class="quick-action-card qa-card-orange">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="kpi-icon-wrap kpi-icon-amber"
+                                        style="width: 42px; height: 42px; font-size: 1.2rem;">
+                                        <i class="bi bi-camera-video"></i>
+                                    </div>
+                                    <span
+                                        class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 rounded-pill small">1
+                                        FPS Sampler</span>
+                                </div>
+                                <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Video Deepfake</h3>
+                                <p class="small text-muted mb-0" style="font-size: 0.8rem; line-height: 1.5;">
+                                    Extract temporal keyframes, map timeline flickers, and detect face swap anomalies.
+                                </p>
+                            </div>
+                            <div
+                                class="d-flex align-items-center gap-1 mt-3 small fw-semibold text-warning arrow-glide">
+                                <span>Launch Video Scan</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Action 4: Comparison Studio -->
+                    <div class="col-md-6">
+                        <a href="{{ url_for('detect.comparison_studio') }}" class="quick-action-card qa-card-purple">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="kpi-icon-wrap kpi-icon-amber"
+                                        style="width: 42px; height: 42px; font-size: 1.2rem; background: rgba(168, 85, 247, 0.2); color: #c084fc;">
+                                        <i class="bi bi-intersect"></i>
+                                    </div>
+                                    <span
+                                        class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 rounded-pill small">Dual
+                                        Saliency</span>
+                                </div>
+                                <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Comparison Studio</h3>
+                                <p class="small text-muted mb-0" style="font-size: 0.8rem; line-height: 1.5;">
+                                    Compare two faces side-by-side with split slider and pixel divergence heatmaps.
+                                </p>
+                            </div>
+                            <div class="d-flex align-items-center gap-1 mt-3 small fw-semibold text-info arrow-glide">
+                                <span>Open Studio</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </a>
+                    </div>
                 </div>
-                <div class="d-flex align-items-center gap-1 mt-3 small fw-semibold" style="color: var(--accent-rose);">
-                    <span>Generate Heatmap</span>
-                    <i class="bi bi-arrow-right"></i>
-                </div>
-            </a>
+            </div>
         </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- MULTI-DOMAIN FORENSIC PIPELINE OVERVIEW                        -->
+    <!-- 4. ANIMATED CHART.JS REAL DATABASE DATA VISUALIZATIONS         -->
     <!-- ============================================================== -->
-    <div class="glass-card p-4 mb-4">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-            <div>
-                <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);"><i class="bi bi-diagram-3 me-2 text-primary"></i>Multi-Domain Forensic Verification Engine</h3>
-                <p class="small text-muted mb-0">Every face is cross-verified across deep learning representations and raw physical sensor optics</p>
+    <div class="row g-3 mb-4">
+        <!-- Chart 1: 7-Day Timeline Activity Stream (Line) -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom"
+                    style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-graph-up me-2" style="color: var(--color-cyan);"></i>7-Day Authenticity &
+                            Threat Trend
+                        </h2>
+                        <small class="text-muted">Daily verification throughput queried from actual database
+                            records</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 small">
+                        <span class="d-inline-flex align-items-center gap-1 text-muted" style="font-size: 0.72rem;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #06b6d4;"></span>Total
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1 text-muted" style="font-size: 0.72rem;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>Real
+                        </span>
+                        <span class="d-inline-flex align-items-center gap-1 text-muted" style="font-size: 0.72rem;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #f43f5e;"></span>Fake
+                        </span>
+                    </div>
+                </div>
+                <div style="height: 260px; position: relative;">
+                    <canvas id="timelineChart"></canvas>
+                </div>
             </div>
-            <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill small">Active Pipeline</span>
         </div>
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
-                    <div class="fw-bold small mb-1" style="color: var(--accent-sky);"><i class="bi bi-cpu me-1"></i> ResNet-18 CNN</div>
-                    <p class="small text-muted mb-0" style="font-size: 0.8rem;">Evaluates deep convolutional spatial features and boundary warping artifacts.</p>
+
+        <!-- Chart 2: Authenticity Distribution (Doughnut) -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom"
+                    style="border-color: var(--border-color) !important;">
+                    <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                        <i class="bi bi-pie-chart me-2" style="color: var(--color-purple);"></i>Verdict Ratio
+                    </h2>
+                    <span class="badge bg-secondary bg-opacity-25 text-light px-2 py-1 rounded-pill small">Real
+                        DB</span>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
-                    <div class="fw-bold small mb-1" style="color: var(--accent-emerald);"><i class="bi bi-broadcast me-1"></i> 2D-FFT Spectrum</div>
-                    <p class="small text-muted mb-0" style="font-size: 0.8rem;">Checks high-frequency radial falloff to catch generative upsampling spikes.</p>
+                <div style="height: 200px; position: relative;">
+                    <canvas id="verdictChart"></canvas>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
-                    <div class="fw-bold small mb-1" style="color: var(--accent-amber);"><i class="bi bi-dot me-1"></i> Sensor Grain</div>
-                    <p class="small text-muted mb-0" style="font-size: 0.8rem;">Measures Laplacian variance to detect synthetic over-smoothing.</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
-                    <div class="fw-bold small mb-1" style="color: var(--accent-rose);"><i class="bi bi-intersect me-1"></i> ELA Compression</div>
-                    <p class="small text-muted mb-0" style="font-size: 0.8rem;">Calculates error level delta across multiple JPEG quantization matrices.</p>
+                <div class="d-flex justify-content-around mt-3 pt-2 border-top text-center"
+                    style="border-color: var(--border-color) !important; font-size: 0.75rem;">
+                    <div>
+                        <div class="text-success fw-bold">{{ real_scans }}</div>
+                        <div class="text-muted">Authentic</div>
+                    </div>
+                    <div>
+                        <div class="text-danger fw-bold">{{ fake_scans }}</div>
+                        <div class="text-muted">Deepfakes</div>
+                    </div>
+                    <div>
+                        <div class="text-info fw-bold">{{ total_scans }}</div>
+                        <div class="text-muted">Total</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- RECENT SCANS TABLE                                             -->
+    <!-- 5. RECENT SCANS TABLE WITH VIBRANT STATUS LABELS               -->
     <!-- ============================================================== -->
     <div class="glass-card p-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom"
+            style="border-color: var(--border-color) !important;">
             <div>
-                <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Verification Scans</h3>
-                <p class="small text-muted mb-0">Your latest image and video analysis logs</p>
+                <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>Recent Verification Scans
+                </h2>
+                <small class="text-muted">Detailed inspection log of your latest neural and optical examinations</small>
             </div>
             <a href="{{ url_for('history.list_history') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                View Full History
+                <i class="bi bi-list-nested me-1"></i>Full Audit History
             </a>
         </div>
 
         {% if recent_scans %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="color: var(--text-primary);">
-                    <thead>
-                        <tr class="text-muted small text-uppercase" style="border-bottom-color: var(--border-color); font-size: 0.72rem; letter-spacing: 0.05em;">
-                            <th>Scan ID</th>
-                            <th>Filename</th>
-                            <th>Media</th>
-                            <th>Faces</th>
-                            <th>Verdict</th>
-                            <th>Confidence</th>
-                            <th>Timestamp</th>
-                            <th class="text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for scan in recent_scans %}
-                            <tr style="border-bottom-color: var(--border-color);">
-                                <td class="font-monospace small text-muted">#{{ scan.scan_uuid[:8] }}</td>
-                                <td class="fw-semibold text-truncate" style="max-width: 200px;">{{ scan.original_filename }}</td>
-                                <td>
-                                    <span class="badge rounded-pill {% if scan.media_type == 'video' %}bg-warning text-dark{% else %}bg-primary text-light{% endif %} px-2 py-1 small">
-                                        <i class="bi {% if scan.media_type == 'video' %}bi-camera-video{% else %}bi-image{% endif %} me-1"></i>{{ scan.media_type|capitalize }}
-                                    </span>
-                                </td>
-                                <td>{{ scan.face_count }}</td>
-                                <td>
-                                    {% if scan.overall_prediction == 'REAL' %}
-                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2 py-1">
-                                            <i class="bi bi-shield-check me-1"></i>REAL
-                                        </span>
-                                    {% elif scan.overall_prediction == 'FAKE' %}
-                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>FAKE
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 py-1">
-                                            PENDING
-                                        </span>
-                                    {% endif %}
-                                </td>
-                                <td class="fw-bold">{{ scan.overall_confidence }}%</td>
-                                <td class="small text-muted">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') if scan.created_at else 'N/A' }}</td>
-                                <td class="text-end">
-                                    <a href="{{ url_for('history.list_history') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="Inspect Scan">
-                                        Details
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="color: var(--text-primary); font-size: 0.84rem;">
+                <thead>
+                    <tr class="text-muted small text-uppercase"
+                        style="border-bottom-color: var(--border-color); font-size: 0.72rem; letter-spacing: 0.05em;">
+                        <th>Scan ID</th>
+                        <th>Target Filename</th>
+                        <th>Media Format</th>
+                        <th>Faces</th>
+                        <th>Verdict</th>
+                        <th>Confidence</th>
+                        <th>Timestamp</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scan in recent_scans %}
+                    <tr style="border-bottom-color: var(--border-color);">
+                        <td class="font-monospace small text-muted">#{{ scan.scan_uuid[:8] }}</td>
+                        <td class="fw-semibold text-truncate" style="max-width: 220px;"
+                            title="{{ scan.original_filename }}">
+                            {{ scan.original_filename }}
+                        </td>
+                        <td>
+                            <span
+                                class="badge rounded-pill {% if scan.media_type == 'video' %}bg-warning text-dark{% else %}bg-primary text-light{% endif %} px-2 py-1 small">
+                                <i
+                                    class="bi {% if scan.media_type == 'video' %}bi-camera-video{% else %}bi-image{% endif %} me-1"></i>{{
+                                scan.media_type|capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary bg-opacity-25 text-light px-2 py-1">{{ scan.face_count
+                                }}</span>
+                        </td>
+                        <td>
+                            {% if scan.overall_prediction == 'REAL' %}
+                            <span class="badge-status-real">
+                                <i class="bi bi-shield-check"></i>REAL
+                            </span>
+                            {% elif scan.overall_prediction == 'FAKE' %}
+                            <span class="badge-status-fake">
+                                <i class="bi bi-exclamation-triangle"></i>FAKE
+                            </span>
+                            {% elif scan.status == 'processing' %}
+                            <span class="badge-status-proc">
+                                <i class="bi bi-arrow-repeat spin"></i>PROCESSING
+                            </span>
+                            {% else %}
+                            <span class="badge-status-fail">
+                                <i class="bi bi-question-circle"></i>PENDING
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">{{ scan.overall_confidence }}%</span>
+                                <div class="conf-bar-wrapper">
+                                    <div class="conf-bar-fill {% if scan.overall_prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %}"
+                                        style="width: {{ scan.overall_confidence }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="small text-muted">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') if scan.created_at
+                            else 'N/A' }}</td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{{ url_for('history.view_scan', scan_uuid=scan.scan_uuid) }}"
+                                    class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                                    style="font-size: 0.75rem;" title="Inspect Detailed Telemetry">
+                                    <i class="bi bi-eye me-1"></i>Inspect
+                                </a>
+                                <a href="{{ url_for('chat.chat_index', scan_uuid=scan.scan_uuid) }}"
+                                    class="btn btn-sm btn-outline-info rounded-pill px-2 py-1"
+                                    style="font-size: 0.75rem;" title="Consult AI Assistant">
+                                    <i class="bi bi-chat-dots"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-            <!-- Clean Empty State -->
-            <div class="text-center py-5">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 64px; height: 64px; background: rgba(56, 189, 248, 0.1); color: var(--accent-sky);">
-                    <i class="bi bi-shield-plus fs-2"></i>
-                </div>
-                <h4 class="h6 fw-bold" style="color: var(--text-primary);">No Detection Scans Recorded Yet</h4>
-                <p class="small text-muted mx-auto mb-3" style="max-width: 420px;">
-                    Begin by uploading an image or portrait to run neural artifact detection and deep multi-domain forensic verification.
-                </p>
-                <a href="{{ url_for('detect.image_page') }}" class="btn btn-primary rounded-pill px-4 shadow-sm btn-sm">
-                    <i class="bi bi-cloud-arrow-up me-2"></i>Upload First Image
-                </a>
+        <!-- Clean Empty State -->
+        <div class="text-center py-5">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm"
+                style="width: 64px; height: 64px; background: rgba(6, 182, 212, 0.12); color: var(--color-cyan); border: 1px solid rgba(6, 182, 212, 0.3);">
+                <i class="bi bi-shield-plus fs-2"></i>
             </div>
+            <h3 class="h6 fw-bold" style="color: var(--text-primary);">No Detection Scans Recorded Yet</h3>
+            <p class="small text-muted mx-auto mb-3" style="max-width: 440px;">
+                Begin by uploading an image portrait, crowd photograph, or video stream to run neural feature detection
+                and physical sensor forensics.
+            </p>
+            <a href="{{ url_for('detect.image_page') }}" class="btn btn-primary rounded-pill px-4 shadow-sm btn-sm">
+                <i class="bi bi-cloud-arrow-up me-2"></i>Upload First Image
+            </a>
+        </div>
         {% endif %}
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    (function () {
+        // -------------------------------------------------------------
+        // 1. Animated Number Counter with Reduced-Motion Support
+        // -------------------------------------------------------------
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const counters = document.querySelectorAll('.counter-number');
+
+        counters.forEach(counter => {
+            const target = parseFloat(counter.getAttribute('data-target')) || 0;
+            const decimals = parseInt(counter.getAttribute('data-decimals')) || 0;
+
+            if (prefersReducedMotion) {
+                counter.innerText = target.toFixed(decimals);
+                return;
+            }
+
+            const duration = 1200; // ms
+            const startTime = performance.now();
+
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease-out cubic
+                const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+                const currentVal = (easeOutProgress * target);
+
+                counter.innerText = currentVal.toFixed(decimals);
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    counter.innerText = target.toFixed(decimals);
+                }
+            }
+
+            requestAnimationFrame(updateCounter);
+        });
+
+        // -------------------------------------------------------------
+        // 2. Animated Circular Risk Gauge
+        // -------------------------------------------------------------
+        const riskBar = document.getElementById('riskProgressBar');
+        if (riskBar) {
+            const score = parseFloat(riskBar.getAttribute('data-score')) || 0;
+            const circumference = 2 * Math.PI * 60; // ~376.99
+            const offset = circumference - (score / 100) * circumference;
+
+            if (prefersReducedMotion) {
+                riskBar.style.strokeDashoffset = offset;
+            } else {
+                setTimeout(() => {
+                    riskBar.style.strokeDashoffset = offset;
+                }, 200);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 3. Real Database Chart.js Visualizations
+        // -------------------------------------------------------------
+        const chartData = {{ chart_data | tojson
+    }};
+    const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+
+    // A. 7-Day Line Chart
+    const ctxTimeline = document.getElementById('timelineChart');
+    if (ctxTimeline && chartData) {
+        new Chart(ctxTimeline, {
+            type: 'line',
+            data: {
+                labels: chartData.trend_labels,
+                datasets: [
+                    {
+                        label: 'Total Scans',
+                        data: chartData.trend_total,
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.12)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#06b6d4',
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Authentic (Real)',
+                        data: chartData.trend_real,
+                        borderColor: '#10b981',
+                        backgroundColor: 'transparent',
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#10b981',
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Deepfakes (Fake)',
+                        data: chartData.trend_fake,
+                        borderColor: '#f43f5e',
+                        backgroundColor: 'transparent',
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#f43f5e',
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: prefersReducedMotion ? false : { duration: 1000 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, font: { size: 10 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, precision: 0, font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+
+    // B. Verdict Doughnut Chart
+    const ctxVerdict = document.getElementById('verdictChart');
+    if (ctxVerdict && chartData) {
+        const hasData = (chartData.verdict_dist[0] + chartData.verdict_dist[1]) > 0;
+        new Chart(ctxVerdict, {
+            type: 'doughnut',
+            data: {
+                labels: ['Authentic (Real)', 'Deepfake (Fake)', 'Pending/Other'],
+                datasets: [{
+                    data: hasData ? chartData.verdict_dist : [1, 0, 0],
+                    backgroundColor: hasData ? ['#10b981', '#f43f5e', '#f59e0b'] : ['rgba(148, 163, 184, 0.2)', 'transparent', 'transparent'],
+                    borderWidth: 2,
+                    borderColor: isDark ? '#0f172a' : '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                animation: prefersReducedMotion ? false : { duration: 1200 },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: textColor, boxWidth: 10, font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+}) ();
+</script>
 {% endblock %}
