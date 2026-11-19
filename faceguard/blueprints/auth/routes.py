@@ -13,7 +13,7 @@ from faceguard.blueprints.auth.forms import (
 )
 from faceguard.extensions import db
 from faceguard.models.user import User, get_utc_now
-from faceguard.utils.mailer import send_otp_email, send_reset_password_email
+from faceguard.utils.mailer import send_otp_email, send_reset_password_email, is_smtp_configured
 from faceguard.utils.security import log_audit
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -127,7 +127,13 @@ def verify_email():
             db.session.commit()
             log_audit("failed_otp_verification", f"Failed OTP for {email}")
             flash(message, "error")
-            return render_template("verify_email.html", form=form, email=email)
+            return render_template(
+                "verify_email.html",
+                form=form,
+                email=email,
+                fallback_otp=user.otp_code if not is_smtp_configured() else None,
+                smtp_configured=is_smtp_configured()
+            )
 
         # Verification Succeeded
         db.session.commit()
@@ -136,7 +142,13 @@ def verify_email():
         flash("Email verified successfully! Welcome to FACEGUARD AI.", "success")
         return redirect(url_for("dashboard.overview"))
 
-    return render_template("verify_email.html", form=form, email=email)
+    return render_template(
+        "verify_email.html",
+        form=form,
+        email=email,
+        fallback_otp=user.otp_code if not is_smtp_configured() else None,
+        smtp_configured=is_smtp_configured()
+    )
 
 @auth_bp.route("/resend-otp", methods=["POST"])
 def resend_otp():
@@ -221,7 +233,7 @@ def reset_password():
 
         if user.reset_token.strip() != code:
             flash("Incorrect reset code. Please try again.", "error")
-            return render_template("reset_password.html", form=form, email=email)
+            return render_template("reset_password.html", form=form, email=email, fallback_otp=user.reset_token if not is_smtp_configured() else None)
 
         # Update password
         user.set_password(new_password)
@@ -233,7 +245,8 @@ def reset_password():
         flash("Password has been reset successfully! You can now sign in.", "success")
         return redirect(url_for("auth.login"))
 
-    return render_template("reset_password.html", form=form, email=email)
+    user = User.query.filter_by(email=email).first() if email else None
+    return render_template("reset_password.html", form=form, email=email, fallback_otp=user.reset_token if (user and not is_smtp_configured()) else None)
 
 @auth_bp.route("/profile", methods=["GET", "POST"])
 @login_required
