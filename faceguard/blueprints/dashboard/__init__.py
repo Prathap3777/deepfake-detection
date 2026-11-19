@@ -13,17 +13,15 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.route("/")
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for("dashboard.overview"))
-    return redirect(url_for("auth.login"))
+    return redirect(url_for("dashboard.overview"))
 
 @dashboard_bp.route("/login")
 def direct_login():
-    return redirect(url_for("auth.login"))
+    return redirect(url_for("dashboard.overview"))
 
 @dashboard_bp.route("/register")
 def direct_register():
-    return redirect(url_for("auth.register"))
+    return redirect(url_for("dashboard.overview"))
 
 @dashboard_bp.route("/overview")
 @login_required

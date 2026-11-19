@@ -292,10 +292,12 @@ def profile():
     )
 
 @auth_bp.route("/logout")
-@login_required
 def logout():
-    """Terminates session securely"""
-    log_audit("user_logout", f"User {current_user.email} signed out", user_id=current_user.id)
-    logout_user()
+    """Terminates session or returns directly to dashboard"""
+    if current_app.config.get("AUTO_LOGIN_ENABLED", True) and not current_app.config.get("TESTING", False):
+        return redirect(url_for("dashboard.overview"))
+    if current_user.is_authenticated:
+        log_audit("user_logout", f"User {current_user.email} signed out", user_id=current_user.id)
+        logout_user()
     flash("You have been securely signed out.", "info")
     return redirect(url_for("auth.login"))

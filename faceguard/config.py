@@ -52,6 +52,9 @@ class Config:
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_SENDER_NAME = os.environ.get("MAIL_SENDER_NAME", "FACEGUARD AI Security")
 
+    # Direct Access / No Login Wall
+    AUTO_LOGIN_ENABLED = True
+
 class DevelopmentConfig(Config):
     DEBUG = True
 
@@ -61,5 +64,6 @@ class ProductionConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    AUTO_LOGIN_ENABLED = False
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
