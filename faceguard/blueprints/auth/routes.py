@@ -131,7 +131,7 @@ def verify_email():
                 "verify_email.html",
                 form=form,
                 email=email,
-                fallback_otp=user.otp_code if not is_smtp_configured() else None,
+                fallback_otp=user.otp_code,
                 smtp_configured=is_smtp_configured()
             )
 
@@ -146,7 +146,7 @@ def verify_email():
         "verify_email.html",
         form=form,
         email=email,
-        fallback_otp=user.otp_code if not is_smtp_configured() else None,
+        fallback_otp=user.otp_code,
         smtp_configured=is_smtp_configured()
     )
 
@@ -233,7 +233,7 @@ def reset_password():
 
         if user.reset_token.strip() != code:
             flash("Incorrect reset code. Please try again.", "error")
-            return render_template("reset_password.html", form=form, email=email, fallback_otp=user.reset_token if not is_smtp_configured() else None)
+            return render_template("reset_password.html", form=form, email=email, fallback_otp=user.reset_token)
 
         # Update password
         user.set_password(new_password)
@@ -246,7 +246,7 @@ def reset_password():
         return redirect(url_for("auth.login"))
 
     user = User.query.filter_by(email=email).first() if email else None
-    return render_template("reset_password.html", form=form, email=email, fallback_otp=user.reset_token if (user and not is_smtp_configured()) else None)
+    return render_template("reset_password.html", form=form, email=email, fallback_otp=user.reset_token if user else None)
 
 @auth_bp.route("/profile", methods=["GET", "POST"])
 @login_required
