@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Video Deepfake Detection &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Video Authenticity Analysis{% endblock %}
+{% block page_subtitle %}Controlled frame extraction, facial ROI localization, and timestamp manipulation detection{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    {% if not result %}
+    <!-- ============================================================== -->
+    <!-- UPLOAD & VIDEO DETECTION LAUNCHER                              -->
+    <!-- ============================================================== -->
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <div class="glass-card p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm" style="width: 56px; height: 56px; background: rgba(245, 158, 11, 0.12); color: var(--accent-amber);">
+                        <i class="bi bi-camera-video fs-2"></i>
+                    </div>
+                    <h2 class="h5 fw-bold mb-1" style="color: var(--text-primary);">Video Deepfake & Face Swap Scanner</h2>
+                    <p class="small text-muted mb-0 mx-auto" style="max-width: 520px;">
+                        Upload MP4, AVI, or MOV video clips. Our pipeline samples frames at 1 fps, tracks facial boundaries, performs multi-domain inference, and generates a timestamped manipulation timeline.
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ url_for('detect.video_page') }}" enctype="multipart/form-data" id="videoForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Drag and Drop Zone -->
+                    <div class="mb-4">
+                        <label for="videoInput" class="dropzone-area p-5 text-center d-block rounded-3 border-dashed" id="videoDropzone" style="border: 2px dashed var(--border-color); cursor: pointer; transition: all 0.2s ease; background: var(--bg-body);">
+                            <input type="file" name="video" id="videoInput" class="d-none" accept=".mp4,.avi,.mov" required>
+                            
+                            <div id="videoPrompt">
+                                <i class="bi bi-camera-video display-4 text-muted mb-3 d-block"></i>
+                                <span class="fw-semibold d-block mb-1" style="color: var(--text-primary);">Drag and drop video here, or <span style="color: var(--accent-amber);">browse</span></span>
+                                <span class="small text-muted d-block">Supported formats: MP4, AVI, MOV (Max 64MB)</span>
+                            </div>
+
+                            <!-- Live Video Player Preview -->
+                            <div id="videoPreviewArea" class="d-none">
+                                <video id="videoPlayer" controls class="rounded-3 shadow-sm mb-3 w-100" style="max-height: 280px; background: #000000;"></video>
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <span class="small fw-semibold text-truncate" id="videoFilename" style="max-width: 250px; color: var(--text-primary);"></span>
+                                    <span class="badge bg-secondary rounded-pill small" id="videoSize"></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" id="clearVideoBtn" title="Remove video">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Processing Notice -->
+                    <div class="p-3 rounded-3 mb-4 border small text-muted" style="background: var(--bg-body); border-color: var(--border-color) !important;">
+                        <i class="bi bi-info-circle text-primary me-1"></i>
+                        <strong>Sampling Rate:</strong> Video frames are analyzed at a controlled rate of 1 frame per second (up to 20 frames per video) to maintain sub-second response times and preserve cloud memory bounds.
+                    </div>
+
+                    <!-- Submit Button & Spinner -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning text-dark rounded-pill py-2 fw-semibold shadow-sm" id="videoSubmitBtn">
+                            <i class="bi bi-film me-2"></i>Analyze Video Frames
+                        </button>
+                    </div>
+
+                    <div id="videoProcessingIndicator" class="d-none text-center py-4">
+                        <div class="spinner-border text-warning mb-3" style="width: 2.5rem; height: 2.5rem;" role="status">
+                            <span class="visually-hidden">Sampling video frames...</span>
+                        </div>
+                        <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Processing Video Media</h3>
+                        <p class="small text-muted mb-0">Demuxing video stream, extracting 1 fps keyframes, and running convolutional face classification...</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ============================================================== -->
+    <!-- VIDEO DETECTION RESULTS DASHBOARD                              -->
+    <!-- ============================================================== -->
+    <div class="row g-4">
+        
+        <!-- Top: Video Verdict Banner -->
+        <div class="col-12">
+            <div class="glass-card p-4 border-2 position-relative overflow-hidden"
+                 style="{% if result.overall_prediction == 'REAL' %}border-color: rgba(16, 185, 129, 0.4) !important; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, var(--bg-card) 100%);{% elif result.overall_prediction == 'FAKE' %}border-color: rgba(244, 63, 94, 0.4) !important; background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, var(--bg-card) 100%);{% else %}border-color: rgba(245, 158, 11, 0.4) !important; background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, var(--bg-card) 100%);{% endif %}">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 54px; height: 54px; {% if result.overall_prediction == 'REAL' %}background: rgba(16, 185, 129, 0.2); color: #10b981;{% elif result.overall_prediction == 'FAKE' %}background: rgba(244, 63, 94, 0.2); color: #f43f5e;{% else %}background: rgba(245, 158, 11, 0.2); color: #f59e0b;{% endif %}">
+                            <i class="bi {% if result.overall_prediction == 'REAL' %}bi-shield-check{% elif result.overall_prediction == 'FAKE' %}bi-exclamation-triangle{% else %}bi-question-circle{% endif %} fs-3"></i>
+                        </div>
+                        <div>
+                            <span class="badge rounded-pill text-uppercase px-3 py-1 small fw-bold mb-1"
+                                  style="{% if result.overall_prediction == 'REAL' %}background: #10b981; color: #ffffff;{% elif result.overall_prediction == 'FAKE' %}background: #f43f5e; color: #ffffff;{% else %}background: #f59e0b; color: #000000;{% endif %}">
+                                {% if result.overall_prediction == 'REAL' %}AUTHENTIC VIDEO{% elif result.overall_prediction == 'FAKE' %}DEEPFAKE MANIPULATION DETECTED{% else %}NO FACES FOUND{% endif %}
+                            </span>
+                            <h2 class="h5 fw-bold mb-0" style="color: var(--text-primary);">
+                                {% if result.overall_prediction == 'REAL' %}Verified Authentic Video Recording{% elif result.overall_prediction == 'FAKE' %}Manipulated Video Frames Identified{% else %}Unable to detect facial structures in sampled frames{% endif %}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <div class="text-lg-end">
+                        <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Aggregated Confidence</div>
+                        <div class="h3 fw-bold mb-0" style="{% if result.overall_prediction == 'REAL' %}color: #10b981;{% else %}color: #f43f5e;{% endif %}">
+                            {{ result.overall_confidence }}%
+                        </div>
+                    </div>
+                </div>
+
+                <p class="small text-muted mt-3 mb-0 border-top pt-2" style="border-color: var(--border-color) !important;">
+                    <i class="bi bi-info-circle me-1"></i>{{ result.analysis_status }}
+                </p>
+            </div>
+        </div>
+
+        <!-- 4 KPI Metric Widgets -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Total Frames</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--text-primary);">{{ result.total_sampled_frames }}</div>
+                    <div class="small text-muted">Duration: {{ result.video_duration_sec }}s @ {{ result.video_fps }} FPS</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-film"></i></div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Face Frames</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--accent-sky);">{{ result.face_frames_count }}</div>
+                    <div class="small text-muted">Frames with human faces</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-person-bounding-box"></i></div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Authentic Frames</div>
+                    <div class="h3 fw-bold my-1 text-success">{{ result.real_frames_count }}</div>
+                    <div class="small text-muted">Pass physical & CNN checks</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-green"><i class="bi bi-shield-check"></i></div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Suspicious Frames</div>
+                    <div class="h3 fw-bold my-1 text-danger">{{ result.fake_frames_count }}</div>
+                    <div class="small text-muted">Flagged synthetic artifacts</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+            </div>
+        </div>
+
+        <!-- Aggregation Method Note -->
+        <div class="col-12">
+            <div class="glass-card p-3 d-flex align-items-center gap-3">
+                <i class="bi bi-journal-code fs-4 text-primary"></i>
+                <div class="small text-muted">
+                    <span class="fw-semibold text-light">Aggregation Methodology:</span> {{ result.aggregation_method }}. 
+                    Temporal manipulation detection requires recurrent temporal models (e.g., 3D-CNN / LSTM); current evaluation provides validated spatial sampling per keyframe.
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyframe Timeline Table -->
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="fw-bold small" style="color: var(--text-primary);">
+                        <i class="bi bi-clock-history me-2 text-primary"></i>Sampled Frame Timeline & Suspicious Timestamp Registry
+                    </div>
+                    <span class="small text-muted">{{ result.frames|length }} keyframe(s)</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="color: var(--text-primary);">
+                        <thead>
+                            <tr class="text-muted small text-uppercase" style="border-bottom-color: var(--border-color); font-size: 0.72rem; letter-spacing: 0.05em;">
+                                <th>#</th>
+                                <th>Timestamp</th>
+                                <th>Keyframe</th>
+                                <th>Face Detected</th>
+                                <th>Verdict</th>
+                                <th>Certainty</th>
+                                <th class="text-end">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for frame in result.frames %}
+                            <tr style="border-bottom-color: var(--border-color); {% if frame.is_suspicious %}background: rgba(244, 63, 94, 0.05);{% endif %}">
+                                <td class="font-monospace small text-muted">{{ frame.frame_index }}</td>
+                                <td class="fw-bold font-monospace" style="color: var(--accent-sky);">
+                                    <i class="bi bi-stopwatch me-1"></i>{{ frame.timestamp_str }}
+                                </td>
+                                <td>
+                                    <img src="{{ url_for('static', filename=frame.frame_path.replace('static/', '')) }}" alt="Frame {{ frame.frame_index }}" class="rounded-2 border shadow-sm" style="width: 80px; height: 50px; object-fit: cover; border-color: var(--border-color) !important;">
+                                </td>
+                                <td>
+                                    {% if frame.face_detected %}
+                                        <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-2 py-1 small">
+                                            <i class="bi bi-check me-1"></i>Detected
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-2 py-1 small">
+                                            None
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if frame.prediction == 'REAL' %}
+                                        <span class="badge bg-success text-light rounded-pill px-2 py-1 small">REAL</span>
+                                    {% elif frame.prediction == 'FAKE' %}
+                                        <span class="badge bg-danger text-light rounded-pill px-2 py-1 small">FAKE</span>
+                                    {% else %}
+                                        <span class="text-muted small">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-semibold">
+                                    {% if frame.confidence > 0 %}
+                                        {{ frame.confidence }}%
+                                    {% else %}
+                                        <span class="text-muted small">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if frame.is_suspicious %}
+                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 small fw-bold">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>SUSPICIOUS
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary bg-opacity-25 text-muted rounded-pill px-2 py-1 small">
+                                            Normal
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mt-4">
+                    <a href="{{ url_for('detect.video_page') }}" class="btn btn-outline-primary rounded-pill px-4 btn-sm">
+                        <i class="bi bi-film me-2"></i>Analyze Another Video
+                    </a>
+                    <a href="{{ url_for('history.list_history') }}" class="btn btn-outline-secondary rounded-pill px-4 btn-sm">
+                        <i class="bi bi-clock-history me-2"></i>Detection History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const videoInput = document.getElementById('videoInput');
+        const videoDropzone = document.getElementById('videoDropzone');
+        const videoPrompt = document.getElementById('videoPrompt');
+        const videoPreviewArea = document.getElementById('videoPreviewArea');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoFilename = document.getElementById('videoFilename');
+        const videoSize = document.getElementById('videoSize');
+        const clearVideoBtn = document.getElementById('clearVideoBtn');
+        const videoForm = document.getElementById('videoForm');
+        const videoSubmitBtn = document.getElementById('videoSubmitBtn');
+        const videoProcessingIndicator = document.getElementById('videoProcessingIndicator');
+
+        if (videoInput) {
+            videoInput.addEventListener('change', function() {
+                handleVideoFiles(this.files);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                videoDropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    videoDropzone.style.borderColor = 'var(--accent-amber)';
+                    videoDropzone.style.background = 'rgba(245, 158, 11, 0.05)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                videoDropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    videoDropzone.style.borderColor = 'var(--border-color)';
+                    videoDropzone.style.background = 'var(--bg-body)';
+                }, false);
+            });
+
+            videoDropzone.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    videoInput.files = files;
+                    handleVideoFiles(files);
+                }
+            }, false);
+
+            if (clearVideoBtn) {
+                clearVideoBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    videoInput.value = '';
+                    videoPlayer.src = '';
+                    videoPreviewArea.classList.add('d-none');
+                    videoPrompt.classList.remove('d-none');
+                });
+            }
+
+            if (videoForm) {
+                videoForm.addEventListener('submit', function() {
+                    if (videoInput.files && videoInput.files.length > 0) {
+                        videoSubmitBtn.classList.add('d-none');
+                        videoProcessingIndicator.classList.remove('d-none');
+                    }
+                });
+            }
+        }
+
+        function handleVideoFiles(files) {
+            if (files && files[0]) {
+                const file = files[0];
+                videoPlayer.src = URL.createObjectURL(file);
+                videoFilename.textContent = file.name;
+                videoSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                videoPrompt.classList.add('d-none');
+                videoPreviewArea.classList.remove('d-none');
+            }
+        }
+    })();
+</script>
+{% endblock %}

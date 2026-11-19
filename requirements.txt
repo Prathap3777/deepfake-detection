@@ -1,9 +1,13 @@
 # CPU-only PyTorch index to prevent downloading heavy CUDA/GPU binaries on 512MB RAM cloud
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Web Application Framework
-Flask>=2.3.0
-Werkzeug>=2.3.0
+# Web Application Framework & Extensions
+Flask>=3.0.0
+Flask-Login>=0.6.3
+Flask-SQLAlchemy>=3.1.1
+Flask-WTF>=1.2.0
+email-validator>=2.0.0
+Werkzeug>=3.0.0
 python-dotenv>=1.0.0
 
 # Computer Vision & Image Processing
@@ -14,6 +18,9 @@ numpy>=1.24.0
 # Deep Learning Framework (CPU lightweight build)
 torch
 torchvision
+
+# PDF Report Generation
+reportlab>=4.0.0
 
 # Production WSGI Server
 gunicorn>=21.2.0

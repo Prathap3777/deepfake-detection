@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Settings &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Application Settings{% endblock %}
+{% block page_subtitle %}Manage theme, forensic detection sensitivity, and notification alerts{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="row g-4">
+        
+        <!-- Left Column: Settings Form -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center gap-2 mb-4 pb-3 border-bottom" style="border-color: var(--border-color) !important;">
+                    <i class="bi bi-sliders fs-5" style="color: var(--accent-sky);"></i>
+                    <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">Preferences & Model Tuning</h2>
+                </div>
+
+                <form method="POST" action="{{ url_for('dashboard.settings') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- 1. Theme Configuration -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small" style="color: var(--text-primary);">
+                            <i class="bi bi-palette me-1 text-primary"></i>Interface Theme
+                        </label>
+                        <p class="small text-muted mb-2">Select your preferred color scheme inspired by ChatGPT's clean aesthetic.</p>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="form-check p-3 rounded-3 border" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                    <input class="form-check-input" type="radio" name="theme" id="themeDark" value="dark" checked>
+                                    <label class="form-check-label fw-semibold small d-block ms-2" for="themeDark">
+                                        <i class="bi bi-moon-stars me-1 text-info"></i>Dark Navy (Recommended)
+                                        <span class="d-block text-muted fw-normal" style="font-size: 0.75rem;">Optimized for high-contrast forensic image viewing.</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check p-3 rounded-3 border" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                    <input class="form-check-input" type="radio" name="theme" id="themeLight" value="light">
+                                    <label class="form-check-label fw-semibold small d-block ms-2" for="themeLight">
+                                        <i class="bi bi-sun me-1 text-warning"></i>Crisp Light
+                                        <span class="d-block text-muted fw-normal" style="font-size: 0.75rem;">Clean minimalist white layout for daytime reading.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. AI Sensitivity Configuration -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small" style="color: var(--text-primary);">
+                            <i class="bi bi-cpu me-1 text-primary"></i>Forensic Analysis Sensitivity
+                        </label>
+                        <p class="small text-muted mb-2">Controls false-positive tolerances for compressed mobile/social media portraits.</p>
+                        <div class="vstack gap-2">
+                            <div class="form-check p-3 rounded-3 border" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                <input class="form-check-input" type="radio" name="sensitivity" id="sensStandard" value="standard" checked>
+                                <label class="form-check-label small d-block ms-2" for="sensStandard">
+                                    <span class="fw-semibold">Standard Balanced (Recommended)</span>
+                                    <span class="d-block text-muted" style="font-size: 0.75rem;">Default mode calibrated for smartphone selfies and compressed portraits (avoids false alerts on compression noise).</span>
+                                </label>
+                            </div>
+                            <div class="form-check p-3 rounded-3 border" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                <input class="form-check-input" type="radio" name="sensitivity" id="sensHigh" value="high">
+                                <label class="form-check-label small d-block ms-2" for="sensHigh">
+                                    <span class="fw-semibold">High Sensitivity</span>
+                                    <span class="d-block text-muted" style="font-size: 0.75rem;">Stricter threshold for generative diffusion smoothing and sub-pixel edge inconsistencies.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Notification Preferences -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small" style="color: var(--text-primary);">
+                            <i class="bi bi-bell me-1 text-primary"></i>Notification Alerts
+                        </label>
+                        <div class="vstack gap-2">
+                            <div class="form-check form-switch p-3 rounded-3 border d-flex align-items-center justify-content-between" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                <div>
+                                    <label class="form-check-label fw-semibold small" for="emailAlerts">Security Audit Alerts</label>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Receive email notifications for password changes and suspicious logins.</div>
+                                </div>
+                                <input class="form-check-input ms-0" type="checkbox" id="emailAlerts" name="email_alerts" checked>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                        <a href="{{ url_for('dashboard.overview') }}" class="btn btn-outline-secondary rounded-pill px-4 btn-sm">Cancel</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm shadow-sm">
+                            <i class="bi bi-check2 me-1"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: System Diagnostics & Hardware Info -->
+        <div class="col-lg-4">
+            <!-- Hardware / Deployment Card -->
+            <div class="glass-card p-4 mb-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-server text-info"></i>
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">Runtime Environment</h3>
+                </div>
+                <ul class="list-unstyled small mb-0 vstack gap-3">
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">AI Framework:</span>
+                        <span class="fw-semibold">PyTorch CPU (ResNet-18)</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Face Detector:</span>
+                        <span class="fw-semibold">OpenCV Haar Cascade</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Explainability:</span>
+                        <span class="fw-semibold">Grad-CAM (layer4)</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Forensic FFT:</span>
+                        <span class="fw-semibold">2D NumPy Radially Shifted</span>
+                    </li>
+                    <li class="d-flex justify-content-between" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">App Server:</span>
+                        <span class="fw-semibold">Gunicorn (1W / 4T)</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Profile Shortcut Card -->
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-person-gear text-primary"></i>
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">Account Credentials</h3>
+                </div>
+                <p class="small text-muted mb-3">
+                    To modify your registered full name, email address, or update your password, visit the Account Profile center.
+                </p>
+                <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-primary rounded-pill btn-sm w-100">
+                    <i class="bi bi-person-fill me-1"></i>Manage Profile
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

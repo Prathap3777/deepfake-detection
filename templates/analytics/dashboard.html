@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Forensic Analytics &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Forensic Analytics & Benchmark Telemetry{% endblock %}
+{% block page_subtitle %}Live verification telemetry, physical signal averages, and neural model evaluation benchmarks{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Total Scans -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Total Scans</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--text-primary);">{{ total_scans }}</div>
+                    <div class="small text-muted"><i class="bi bi-activity text-primary me-1"></i>All-time queries</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-cpu"></i></div>
+            </div>
+        </div>
+
+        <!-- Threat Rate -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Threat Detection Rate</div>
+                    <div class="h3 fw-bold my-1 text-danger">{{ threat_rate }}%</div>
+                    <div class="small text-muted">{{ fake_scans }} manipulated of {{ total_scans }} total</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+            </div>
+        </div>
+
+        <!-- Avg Confidence -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Mean Certainty</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--accent-sky);">{{ avg_confidence }}%</div>
+                    <div class="small text-muted">Across analyzed media</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-amber"><i class="bi bi-graph-up"></i></div>
+            </div>
+        </div>
+
+        <!-- Benchmark F1 -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Model F1-Score</div>
+                    <div class="h3 fw-bold my-1 text-success">{{ benchmark.f1_score }}%</div>
+                    <div class="small text-muted">ResNet-18 benchmark</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-green"><i class="bi bi-patch-check"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Grid Row 1: Activity Timeline & Threat Distribution -->
+    <div class="row g-4 mb-4">
+        <!-- 7-Day Detection Activity Timeline -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-graph-up-arrow me-2 text-primary"></i>7-Day Detection Activity Timeline
+                        </h3>
+                        <small class="text-muted">Daily volume of verified authentic vs deepfake scans</small>
+                    </div>
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-pill small">7 Days</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Distribution Doughnut -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                        <i class="bi bi-pie-chart me-2 text-primary"></i>Authenticity Ratio
+                    </h3>
+                    <span class="small text-muted">{{ total_scans }} total</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Grid Row 2: Multi-Domain Telemetry & Media Format -->
+    <div class="row g-4 mb-4">
+        <!-- Forensic Radar Chart -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                        <i class="bi bi-broadcast-pin me-2 text-info"></i>Multi-Domain Signal Telemetry
+                    </h3>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill small">Normalized</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Breakdown Chart -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                        <i class="bi bi-collection-play me-2 text-warning"></i>Media Format Breakdown
+                    </h3>
+                    <span class="small text-muted">Images vs Videos</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="mediaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Academic Evaluation Benchmark & Confusion Matrix -->
+    <div class="glass-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+            <div>
+                <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-mortarboard me-2 text-primary"></i>ResNet-18 Benchmark Evaluation & Confusion Matrix
+                </h3>
+                <small class="text-muted">Rigorous validation results on academic face manipulation test partition</small>
+            </div>
+            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill small">
+                ROC-AUC: {{ benchmark.roc_auc }}
+            </span>
+        </div>
+
+        <div class="row g-4 align-items-center">
+            <!-- Confusion Matrix Visual Table -->
+            <div class="col-lg-6">
+                <div class="p-3 rounded-3 border" style="background: var(--bg-body); border-color: var(--border-color) !important;">
+                    <div class="fw-bold small mb-2 text-center text-muted text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                        Empirical Confusion Matrix (N = 1,000 Validation Faces)
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center align-middle mb-0" style="border-color: var(--border-color) !important; color: var(--text-primary);">
+                            <thead>
+                                <tr class="small text-muted" style="background: rgba(148, 163, 184, 0.1);">
+                                    <th></th>
+                                    <th>Predicted REAL</th>
+                                    <th>Predicted FAKE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold small text-muted">Actual REAL</td>
+                                    <td class="p-3" style="background: rgba(16, 185, 129, 0.15);">
+                                        <div class="h5 fw-bold text-success mb-0">{{ benchmark.confusion_matrix.tn }}</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">True Negative (TN)</small>
+                                    </td>
+                                    <td class="p-3" style="background: rgba(244, 63, 94, 0.1);">
+                                        <div class="h5 fw-bold text-danger mb-0">{{ benchmark.confusion_matrix.fp }}</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">False Positive (FP)</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold small text-muted">Actual FAKE</td>
+                                    <td class="p-3" style="background: rgba(244, 63, 94, 0.1);">
+                                        <div class="h5 fw-bold text-danger mb-0">{{ benchmark.confusion_matrix.fn }}</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">False Negative (FN)</small>
+                                    </td>
+                                    <td class="p-3" style="background: rgba(16, 185, 129, 0.15);">
+                                        <div class="h5 fw-bold text-success mb-0">{{ benchmark.confusion_matrix.tp }}</div>
+                                        <small class="text-muted" style="font-size: 0.7rem;">True Positive (TP)</small>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benchmark Evaluation Metrics Grid -->
+            <div class="col-lg-6">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 border" style="background: var(--bg-body); border-color: var(--border-color) !important;">
+                            <span class="text-muted small d-block">Accuracy</span>
+                            <span class="h4 fw-bold text-success mb-0">{{ benchmark.accuracy }}%</span>
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">Overall correctness</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 border" style="background: var(--bg-body); border-color: var(--border-color) !important;">
+                            <span class="text-muted small d-block">Precision</span>
+                            <span class="h4 fw-bold text-info mb-0">{{ benchmark.precision }}%</span>
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">Fake positive fidelity</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 border" style="background: var(--bg-body); border-color: var(--border-color) !important;">
+                            <span class="text-muted small d-block">Recall (Sensitivity)</span>
+                            <span class="h4 fw-bold text-primary mb-0">{{ benchmark.recall }}%</span>
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">Deepfake capture rate</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 border" style="background: var(--bg-body); border-color: var(--border-color) !important;">
+                            <span class="text-muted small d-block">F1-Score</span>
+                            <span class="h4 fw-bold text-warning mb-0">{{ benchmark.f1_score }}%</span>
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">Harmonic balance</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 border mt-3 small text-muted" style="background: var(--bg-body); border-color: var(--border-color) !important; font-size: 0.78rem;">
+                    <i class="bi bi-shield-check text-primary me-1"></i>
+                    <strong>Data Leakage Prevention:</strong> {{ benchmark.dataset_split_note }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (function() {
+        const rawData = {{ chart_data_json|safe }};
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+
+        // 1. Timeline Chart
+        const ctxTimeline = document.getElementById('timelineChart');
+        if (ctxTimeline) {
+            new Chart(ctxTimeline, {
+                type: 'line',
+                data: {
+                    labels: rawData.labels,
+                    datasets: [
+                        {
+                            label: 'Authentic (Real)',
+                            data: rawData.real_trend,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4
+                        },
+                        {
+                            label: 'Deepfake (Fake)',
+                            data: rawData.fake_trend,
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: textColor, boxWidth: 12 } }
+                    },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, precision: 0 } }
+                    }
+                }
+            });
+        }
+
+        // 2. Distribution Chart (Doughnut)
+        const ctxDist = document.getElementById('distributionChart');
+        if (ctxDist) {
+            const hasData = (rawData.distribution[0] + rawData.distribution[1]) > 0;
+            new Chart(ctxDist, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Authentic (Real)', 'Deepfake (Fake)'],
+                    datasets: [{
+                        data: hasData ? rawData.distribution : [1, 0],
+                        backgroundColor: hasData ? ['#10b981', '#f43f5e'] : ['rgba(148, 163, 184, 0.2)', 'rgba(148, 163, 184, 0.1)'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: textColor, boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // 3. Multi-Domain Signal Telemetry (Radar)
+        const ctxRadar = document.getElementById('radarChart');
+        if (ctxRadar) {
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Sensor Grain', '2D-FFT Radial', 'ELA Uniformity', 'Chroma Coherence'],
+                    datasets: [{
+                        label: 'Observed Telemetry',
+                        data: [
+                            Math.min(100, (rawData.forensics.sensor / 80) * 100),
+                            Math.min(100, (rawData.forensics.fft / 0.92) * 100),
+                            Math.min(100, (rawData.forensics.ela / 25) * 100),
+                            Math.min(100, (rawData.forensics.chroma / 1.0) * 100)
+                        ],
+                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        borderColor: '#38bdf8',
+                        pointBackgroundColor: '#38bdf8',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: { color: gridColor },
+                            grid: { color: gridColor },
+                            pointLabels: { color: textColor, font: { size: 10 } },
+                            ticks: { display: false, max: 100, min: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Media Ingestion Breakdown (Bar)
+        const ctxMedia = document.getElementById('mediaChart');
+        if (ctxMedia) {
+            new Chart(ctxMedia, {
+                type: 'bar',
+                data: {
+                    labels: ['Images', 'Videos'],
+                    datasets: [{
+                        label: 'Scanned Media',
+                        data: rawData.media_distribution,
+                        backgroundColor: ['#0284c7', '#f59e0b'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: textColor } },
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, precision: 0 } }
+                    }
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}

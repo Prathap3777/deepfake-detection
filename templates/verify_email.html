@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Email &bull; Deepfake Image Detection</title>
+    <title>Verify Email &bull; FACEGUARD AI</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
-    <!-- Instagram-Inspired Custom Auth CSS -->
+    <!-- Custom Auth CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <style>
         .ig-otp-input {
@@ -29,13 +29,13 @@
             <div class="auth-card">
                 
                 <div class="ig-brand-logo">
-                    <div class="ig-brand-icon" style="background: linear-gradient(135deg, #0095f6 0%, #00376b 100%);">
+                    <div class="ig-brand-icon" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
                         <i class="bi bi-envelope-check"></i>
                     </div>
                     <h1 class="ig-brand-title" style="font-size: 20px;">Enter Confirmation Code</h1>
                     <p class="ig-brand-subtitle" style="line-height: 1.4; margin-top: 4px;">
-                        Enter the 6-digit code we sent to<br>
-                        <strong style="color: #262626;">{{ email }}</strong>
+                        Enter the 6-digit verification code sent to<br>
+                        <strong style="color: #0f172a;">{{ email }}</strong>
                     </p>
                 </div>
 
@@ -51,8 +51,8 @@
                 {% endwith %}
 
                 <!-- OTP Verification Form -->
-                <form action="{{ url_for('verify_email') }}" method="POST" autocomplete="off" id="otpForm">
-                    <input type="hidden" name="email" value="{{ email }}">
+                <form action="{{ url_for('auth.verify_email', email=email) }}" method="POST" autocomplete="off" id="otpForm">
+                    {{ form.hidden_tag() if form }}
                     
                     <div class="ig-input-group">
                         <input 
@@ -69,50 +69,57 @@
                         >
                     </div>
 
-                    <div style="font-size: 12px; color: #737373; margin: 8px 0 14px;">
-                        <i class="bi bi-clock me-1"></i> Code expires in <strong>5 minutes</strong>
-                    </div>
-
-                    <button type="submit" class="ig-btn-primary" id="verifySubmitBtn">
-                        Confirm & Log in
+                    <button type="submit" class="ig-btn-primary" id="verifyBtn">
+                        Confirm Code
                     </button>
                 </form>
 
-                <!-- Resend Code Form -->
-                <form action="{{ url_for('resend_otp') }}" method="POST" style="margin-top: 16px;">
+                <!-- Resend OTP Form -->
+                <form action="{{ url_for('auth.resend_otp') }}" method="POST" style="margin-top: 18px;" id="resendForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="email" value="{{ email }}">
-                    <span style="font-size: 13px; color: #737373;">Didn't get a code?</span>
-                    <button type="submit" style="background: none; border: none; color: #0095f6; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0 4px;">
+                    <button type="submit" class="ig-link-bold" style="background: none; border: none; cursor: pointer;" id="resendBtn">
                         Resend Code
                     </button>
+                    <div id="resendTimer" style="font-size: 11px; color: #94a3b8; margin-top: 6px;"></div>
                 </form>
 
             </div>
 
-            <!-- Bottom Secondary Card -->
-            <div class="auth-sub-card">
-                <a href="{{ url_for('login') }}" class="ig-link" style="font-weight: 600; font-size: 13px; color: #262626;">
-                    Back to login
-                </a>
+            <!-- Secondary Card -->
+            <div class="auth-card-secondary">
+                <span>Entered the wrong email? <a href="{{ url_for('auth.register') }}" class="ig-link-bold">Sign up again</a></span>
+            </div>
+
+            <!-- Footer -->
+            <div class="ig-footer">
+                <div>&copy; 2026 FACEGUARD AI &bull; Deepfake Image Detection & Face Authenticity</div>
             </div>
 
         </div>
     </div>
 
-    <footer class="ig-footer">
-        <div>&copy; 2026 Deepfake Image Detection &bull; Face Authenticity AI</div>
-    </footer>
-
-    <!-- Numeric Input Filter -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const otpInput = document.getElementById('otpCode');
-            otpInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                if (e.target.value.length === 6) {
-                    document.getElementById('verifySubmitBtn').focus();
+            const resendBtn = document.getElementById('resendBtn');
+            const resendTimer = document.getElementById('resendTimer');
+
+            // 60-second client-side resend cooldown
+            let countdown = 60;
+            resendBtn.disabled = true;
+            resendBtn.style.opacity = '0.5';
+
+            const interval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    resendTimer.textContent = `You can request a new code in ${countdown}s`;
+                } else {
+                    clearInterval(interval);
+                    resendBtn.disabled = false;
+                    resendBtn.style.opacity = '1';
+                    resendTimer.textContent = '';
                 }
-            });
+            }, 1000);
         });
     </script>
 </body>

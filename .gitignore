@@ -12,9 +12,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Temporary Uploads (keep directory, ignore contents)
+# Temporary Uploads & PDF Reports (keep directory, ignore contents)
 static/uploads/*
 !static/uploads/.gitkeep
+static/reports/*
+!static/reports/.gitkeep
+
+# Pytest Cache & Local Artifacts
+.pytest_cache/
 
 # Large Dataset Images (keep directory structure)
 dataset/real/*

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Forensic PDF Reports &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Forensic PDF Dossiers{% endblock %}
+{% block page_subtitle %}Cryptographically verified academic reports compiling physical and neural authenticity evidence{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Total Reports</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--text-primary);">{{ total_reports }}</div>
+                    <div class="small text-muted">Compiled dossiers</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-file-earmark-pdf"></i></div>
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Authentic Dossiers</div>
+                    <div class="h3 fw-bold my-1 text-success">{{ real_count }}</div>
+                    <div class="small text-muted">Clean authenticity findings</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-green"><i class="bi bi-shield-check"></i></div>
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Threat Dossiers</div>
+                    <div class="h3 fw-bold my-1 text-danger">{{ fake_count }}</div>
+                    <div class="small text-muted">Documented manipulations</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="glass-card p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+            <div>
+                <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-file-earmark-ruled me-2 text-primary"></i>Compiled Verification Dossiers
+                </h3>
+                <small class="text-muted">Downloadable publication-ready forensic PDF summaries</small>
+            </div>
+
+            <a href="{{ url_for('history.list_history') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-clock-history me-1"></i>Select Scan from History
+            </a>
+        </div>
+
+        {% if reports %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="color: var(--text-primary);">
+                <thead>
+                    <tr class="text-muted small text-uppercase" style="border-bottom-color: var(--border-color); font-size: 0.72rem; letter-spacing: 0.05em;">
+                        <th>Report ID</th>
+                        <th>Scan Target</th>
+                        <th>Media</th>
+                        <th>Verdict</th>
+                        <th>Size</th>
+                        <th>Compiled Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr style="border-bottom-color: var(--border-color);">
+                        <td class="font-monospace small text-muted">
+                            <i class="bi bi-file-pdf text-danger me-1"></i>#{{ report.report_uuid[:8] }}
+                        </td>
+
+                        <td>
+                            {% if report.scan %}
+                                <div class="fw-semibold text-truncate small" style="max-width: 200px; color: var(--text-primary);" title="{{ report.scan.original_filename }}">
+                                    {{ report.scan.original_filename }}
+                                </div>
+                                <span class="text-muted font-monospace" style="font-size: 0.7rem;">Scan #{{ report.scan.scan_uuid[:8] }}</span>
+                            {% else %}
+                                <span class="text-muted small">Archived Scan</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if report.scan %}
+                                <span class="badge rounded-pill {% if report.scan.media_type == 'video' %}bg-warning text-dark{% else %}bg-primary text-light{% endif %} px-2 py-1 small">
+                                    {{ report.scan.media_type|capitalize }}
+                                </span>
+                            {% else %}
+                                &mdash;
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if report.scan %}
+                                {% if report.scan.overall_prediction == 'REAL' %}
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small fw-bold">
+                                        REAL
+                                    </span>
+                                {% elif report.scan.overall_prediction == 'FAKE' %}
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1 small fw-bold">
+                                        FAKE
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill px-2 py-1 small">
+                                        {{ report.scan.overall_prediction }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                &mdash;
+                            {% endif %}
+                        </td>
+
+                        <td class="small font-monospace text-muted">
+                            {{ (report.file_size_bytes / 1024)|round(1) }} KB
+                        </td>
+
+                        <td class="small text-muted">
+                            {{ report.created_at.strftime('%Y-%m-%d %H:%M') if report.created_at else 'N/A' }}
+                        </td>
+
+                        <td class="text-end">
+                            <div class="d-inline-flex align-items-center gap-2">
+                                <a href="{{ url_for('reports.download_report', report_uuid=report.report_uuid) }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" title="Download PDF File">
+                                    <i class="bi bi-download me-1"></i>Download PDF
+                                </a>
+
+                                {% if report.scan %}
+                                <a href="{{ url_for('history.view_scan', scan_uuid=report.scan.scan_uuid) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-2" title="Inspect Scan Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-5">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 64px; height: 64px; background: rgba(2, 132, 199, 0.1); color: var(--accent-sky);">
+                <i class="bi bi-file-earmark-pdf fs-2"></i>
+            </div>
+            <h4 class="h6 fw-bold" style="color: var(--text-primary);">No Forensic PDF Dossiers Generated Yet</h4>
+            <p class="small text-muted mx-auto mb-3" style="max-width: 440px;">
+                You can compile formal, publication-ready PDF verification reports from any completed image or video scan in your history.
+            </p>
+            <a href="{{ url_for('history.list_history') }}" class="btn btn-primary rounded-pill px-4 btn-sm shadow-sm">
+                <i class="bi bi-clock-history me-1"></i>Browse Scan History
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

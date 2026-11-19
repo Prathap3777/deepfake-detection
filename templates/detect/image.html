@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}Image Deepfake Detection &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Image Authenticity Detection{% endblock %}
+{% block page_subtitle %}Deep residual vision neural network with 4-domain forensic verification{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    {% if not result %}
+    <!-- ============================================================== -->
+    <!-- UPLOAD & DETECTION LAUNCHER INTERFACE                          -->
+    <!-- ============================================================== -->
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <div class="glass-card p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm" style="width: 56px; height: 56px; background: rgba(56, 189, 248, 0.12); color: var(--accent-sky);">
+                        <i class="bi bi-shield-check fs-2"></i>
+                    </div>
+                    <h2 class="h5 fw-bold mb-1" style="color: var(--text-primary);">Verify Facial Authenticity</h2>
+                    <p class="small text-muted mb-0 mx-auto" style="max-width: 500px;">
+                        Upload a photo to execute ResNet-18 feature extraction alongside Laplacian sensor grain, 2D-FFT frequency spectrum, and ELA compression checks.
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ url_for('detect.image_page') }}" enctype="multipart/form-data" id="detectionForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Drag and Drop Zone -->
+                    <div class="mb-4">
+                        <label for="imageInput" class="dropzone-area p-5 text-center d-block rounded-3 border-dashed" id="dropzoneArea" style="border: 2px dashed var(--border-color); cursor: pointer; transition: all 0.2s ease; background: var(--bg-body);">
+                            <input type="file" name="image" id="imageInput" class="d-none" accept=".jpg,.jpeg,.png,.webp" required>
+                            
+                            <div id="dropzonePrompt">
+                                <i class="bi bi-cloud-arrow-up display-4 text-muted mb-3 d-block"></i>
+                                <span class="fw-semibold d-block mb-1" style="color: var(--text-primary);">Drag and drop your image here, or <span style="color: var(--accent-sky);">browse</span></span>
+                                <span class="small text-muted d-block">Supported formats: JPG, JPEG, PNG, WEBP (Max 64MB)</span>
+                            </div>
+
+                            <!-- Live Preview Area (Hidden Initially) -->
+                            <div id="previewArea" class="d-none">
+                                <img id="previewImg" src="#" alt="Preview" class="img-fluid rounded-3 shadow-sm mb-3" style="max-height: 240px; object-fit: contain;">
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <span class="small fw-semibold text-truncate" id="previewFilename" style="max-width: 250px; color: var(--text-primary);"></span>
+                                    <span class="badge bg-secondary rounded-pill small" id="previewSize"></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" id="clearFileBtn" title="Remove image">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Analysis Mode Selector -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold" style="color: var(--text-primary);">
+                            <i class="bi bi-sliders2 me-1 text-primary"></i>Analysis Calibration Mode
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <div class="form-check p-3 rounded-3 border" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                    <input class="form-check-input" type="radio" name="mode" id="modeStandard" value="standard" checked>
+                                    <label class="form-check-label small ms-2" for="modeStandard">
+                                        <span class="fw-semibold d-block" style="color: var(--text-primary);">Standard Balanced Mode</span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">Optimized for high-resolution cameras, passport photos, and studio portraits.</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check p-3 rounded-3 border" style="border-color: var(--border-color) !important; background: var(--bg-body);">
+                                    <input class="form-check-input" type="radio" name="mode" id="modePortrait" value="portrait">
+                                    <label class="form-check-label small ms-2" for="modePortrait">
+                                        <span class="fw-semibold d-block" style="color: var(--text-primary);">Mobile Selfie / Portrait</span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">Tolerates smartphone camera HDR smoothing and ambient beauty filters without false alerts.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button & Progress Indicator -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary rounded-pill py-2 fw-semibold shadow-sm" id="submitBtn">
+                            <i class="bi bi-cpu me-2"></i>Run Deepfake Verification
+                        </button>
+                    </div>
+
+                    <!-- Animated Processing Scanner (Hidden until submit) -->
+                    <div id="processingIndicator" class="d-none text-center py-4">
+                        <div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem;" role="status">
+                            <span class="visually-hidden">Analyzing image...</span>
+                        </div>
+                        <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Executing Deep Vision & Forensic Pipeline</h3>
+                        <p class="small text-muted mb-0" id="pipelineStatusText">Running ResNet-18 convolution & 2D-FFT frequency spectrum analysis...</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ============================================================== -->
+    <!-- COMPREHENSIVE FORENSIC VERIFICATION RESULTS                    -->
+    <!-- ============================================================== -->
+    <div class="row g-4">
+        
+        <!-- Left Column: Primary Verdict Banner & Visual Artifacts -->
+        <div class="col-lg-7">
+            
+            <!-- Verdict Banner -->
+            <div class="glass-card p-4 mb-4 border-2 position-relative overflow-hidden" 
+                 style="{% if result.prediction == 'REAL' %}border-color: rgba(16, 185, 129, 0.4) !important; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, var(--bg-card) 100%);{% else %}border-color: rgba(244, 63, 94, 0.4) !important; background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, var(--bg-card) 100%);{% endif %}">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
+                             style="width: 52px; height: 52px; {% if result.prediction == 'REAL' %}background: rgba(16, 185, 129, 0.2); color: #10b981;{% else %}background: rgba(244, 63, 94, 0.2); color: #f43f5e;{% endif %}">
+                            <i class="bi {% if result.prediction == 'REAL' %}bi-shield-check{% else %}bi-exclamation-triangle{% endif %} fs-3"></i>
+                        </div>
+                        <div>
+                            <span class="badge rounded-pill text-uppercase px-3 py-1 small fw-bold mb-1" 
+                                  style="{% if result.prediction == 'REAL' %}background: #10b981; color: #ffffff;{% else %}background: #f43f5e; color: #ffffff;{% endif %}">
+                                {{ result.prediction }}
+                            </span>
+                            <h2 class="h5 fw-bold mb-0" style="color: var(--text-primary);">
+                                {% if result.prediction == 'REAL' %}Verified Authentic Face{% else %}Deepfake Manipulation Detected{% endif %}
+                            </h2>
+                        </div>
+                    </div>
+                    <div class="text-lg-end">
+                        <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Model Certainty</div>
+                        <div class="h3 fw-bold mb-0" style="{% if result.prediction == 'REAL' %}color: #10b981;{% else %}color: #f43f5e;{% endif %}">
+                            {{ result.confidence }}%
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-muted mt-3 mb-0 border-top pt-2" style="border-color: var(--border-color) !important;">
+                    <i class="bi bi-info-circle me-1"></i>{{ result.analysis_status }}
+                </p>
+            </div>
+
+            <!-- Visual Forensic Inspect Tabs -->
+            <div class="glass-card p-4 mb-4">
+                <ul class="nav nav-pills mb-3 gap-2" id="forensicTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active rounded-pill btn-sm small px-3" id="tab-annotated-btn" data-bs-toggle="pill" data-bs-target="#tab-annotated" type="button" role="tab">
+                            <i class="bi bi-bounding-box me-1"></i>Face Localization
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill btn-sm small px-3" id="tab-fft-btn" data-bs-toggle="pill" data-bs-target="#tab-fft" type="button" role="tab">
+                            <i class="bi bi-broadcast me-1"></i>2D-FFT Spectrum
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill btn-sm small px-3" id="tab-ela-btn" data-bs-toggle="pill" data-bs-target="#tab-ela" type="button" role="tab">
+                            <i class="bi bi-intersect me-1"></i>ELA Heatmap
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="forensicTabsContent">
+                    <!-- Tab 1: Face Localization -->
+                    <div class="tab-pane fade show active text-center" id="tab-annotated" role="tabpanel">
+                        <img src="{{ url_for('static', filename=result.annotated_image_path.replace('static/', '')) }}" alt="Localized Face" class="img-fluid rounded-3 border shadow-sm" style="max-height: 380px; border-color: var(--border-color) !important;">
+                        <div class="d-flex justify-content-center gap-3 mt-3">
+                            <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-pill small">
+                                <i class="bi bi-person me-1"></i>Faces Found: {{ result.face_count }}
+                            </span>
+                            <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 rounded-pill small">
+                                <i class="bi bi-aspect-ratio me-1"></i>Bounding Box: {{ result.bounding_box }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: 2D-FFT Spectrum -->
+                    <div class="tab-pane fade text-center" id="tab-fft" role="tabpanel">
+                        <img src="{{ url_for('static', filename=result.fft_image_path.replace('static/', '')) }}" alt="2D-FFT Spectrum" class="img-fluid rounded-3 border shadow-sm" style="max-height: 380px; border-color: var(--border-color) !important;">
+                        <p class="small text-muted mt-3 mb-0" style="max-width: 500px; margin: 0 auto;">
+                            Radially shifted 2D Fourier power spectrum. Authentic camera lenses create a smooth continuous falloff; generative upscalers produce bright grid spikes.
+                        </p>
+                    </div>
+
+                    <!-- Tab 3: ELA Compression Heatmap -->
+                    <div class="tab-pane fade text-center" id="tab-ela" role="tabpanel">
+                        <img src="{{ url_for('static', filename=result.ela_image_path.replace('static/', '')) }}" alt="ELA Heatmap" class="img-fluid rounded-3 border shadow-sm" style="max-height: 380px; border-color: var(--border-color) !important;">
+                        <p class="small text-muted mt-3 mb-0" style="max-width: 500px; margin: 0 auto;">
+                            Error Level Analysis highlights compression discrepancy between the face and boundary. Synthetic faces exhibit glaring error gradients.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <a href="{{ url_for('detect.image_page') }}" class="btn btn-outline-primary rounded-pill px-4 btn-sm">
+                    <i class="bi bi-cloud-arrow-up me-2"></i>Scan Another Image
+                </a>
+                <a href="{{ url_for('history.list_history') }}" class="btn btn-outline-secondary rounded-pill px-4 btn-sm">
+                    <i class="bi bi-clock-history me-2"></i>View in History
+                </a>
+            </div>
+
+        </div>
+
+        <!-- Right Column: 4-Domain Forensic Breakdown & Audit Signature -->
+        <div class="col-lg-5">
+            
+            <!-- Forensic Diagnostics Card -->
+            <div class="glass-card p-4 mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="fw-bold small" style="color: var(--text-primary);"><i class="bi bi-diagram-3 me-2 text-primary"></i>Physical & Optical Diagnostics</div>
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill small">4 Layers</span>
+                </div>
+
+                <ul class="list-unstyled mb-0 vstack gap-3">
+                    <!-- Layer 1: Sensor Texture -->
+                    <li class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-semibold small" style="color: var(--text-primary);"><i class="bi bi-dot text-primary"></i>Sensor Noise & Pore Texture</span>
+                            <span class="badge {% if 'PASS' in result.forensics.sensor_check %}bg-success{% elif 'WARNING' in result.forensics.sensor_check %}bg-warning text-dark{% else %}bg-danger{% endif %} rounded-pill small">
+                                {{ result.forensics.sensor_check }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Laplacian Variance:</span>
+                            <span class="font-monospace fw-semibold">{{ result.forensics.sensor_noise_variance }}</span>
+                        </div>
+                    </li>
+
+                    <!-- Layer 2: 2D-FFT Frequency Domain -->
+                    <li class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-semibold small" style="color: var(--text-primary);"><i class="bi bi-broadcast text-info"></i>2D-FFT Spectral Symmetry</span>
+                            <span class="badge {% if 'PASS' in result.forensics.fft_check %}bg-success{% else %}bg-danger{% endif %} rounded-pill small">
+                                {{ result.forensics.fft_check }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>High/Low Frequency Ratio:</span>
+                            <span class="font-monospace fw-semibold">{{ result.forensics.frequency_fft_ratio }}</span>
+                        </div>
+                    </li>
+
+                    <!-- Layer 3: Error Level Analysis -->
+                    <li class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-semibold small" style="color: var(--text-primary);"><i class="bi bi-intersect text-warning"></i>ELA Compression Uniformity</span>
+                            <span class="badge {% if 'PASS' in result.forensics.ela_check %}bg-success{% else %}bg-danger{% endif %} rounded-pill small">
+                                {{ result.forensics.ela_check }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Mean Error Delta:</span>
+                            <span class="font-monospace fw-semibold">{{ result.forensics.ela_mean }}</span>
+                        </div>
+                    </li>
+
+                    <!-- Layer 4: Chromatic Coherence -->
+                    <li class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-semibold small" style="color: var(--text-primary);"><i class="bi bi-palette text-danger"></i>RGB Chromatic Well Alignment</span>
+                            <span class="badge {% if 'PASS' in result.forensics.chroma_check %}bg-success{% else %}bg-danger{% endif %} rounded-pill small">
+                                {{ result.forensics.chroma_check }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Inter-channel Correlation:</span>
+                            <span class="font-monospace fw-semibold">{{ result.forensics.chromatic_coherence }}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Cryptographic Verification & Audit Signature -->
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-shield-lock text-primary"></i>
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">Forensic Audit Metadata</h3>
+                </div>
+                <ul class="list-unstyled small mb-0 vstack gap-2">
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Scan Identifier:</span>
+                        <span class="font-monospace fw-semibold">#{{ scan.scan_uuid[:8] if scan else 'N/A' }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Calibration Mode:</span>
+                        <span class="fw-semibold">{{ result.mode|capitalize }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Real Probability:</span>
+                        <span class="fw-semibold text-success">{{ result.real_probability }}%</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Fake Probability:</span>
+                        <span class="fw-semibold text-danger">{{ result.fake_probability }}%</span>
+                    </li>
+                    <li class="pt-1">
+                        <span class="text-muted d-block mb-1">SHA-256 Hash Digest:</span>
+                        <span class="font-monospace small d-block text-break p-2 rounded" style="background: var(--bg-body); font-size: 0.72rem; color: var(--accent-sky);">
+                            {{ result.sha256 }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const imageInput = document.getElementById('imageInput');
+        const dropzoneArea = document.getElementById('dropzoneArea');
+        const dropzonePrompt = document.getElementById('dropzonePrompt');
+        const previewArea = document.getElementById('previewArea');
+        const previewImg = document.getElementById('previewImg');
+        const previewFilename = document.getElementById('previewFilename');
+        const previewSize = document.getElementById('previewSize');
+        const clearFileBtn = document.getElementById('clearFileBtn');
+        const detectionForm = document.getElementById('detectionForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const processingIndicator = document.getElementById('processingIndicator');
+
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                handleFiles(this.files);
+            });
+
+            // Drag and Drop Effects
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzoneArea.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzoneArea.style.borderColor = 'var(--accent-sky)';
+                    dropzoneArea.style.background = 'rgba(56, 189, 248, 0.05)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzoneArea.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzoneArea.style.borderColor = 'var(--border-color)';
+                    dropzoneArea.style.background = 'var(--bg-body)';
+                }, false);
+            });
+
+            dropzoneArea.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    imageInput.files = files;
+                    handleFiles(files);
+                }
+            }, false);
+
+            if (clearFileBtn) {
+                clearFileBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    imageInput.value = '';
+                    previewArea.classList.add('d-none');
+                    dropzonePrompt.classList.remove('d-none');
+                });
+            }
+
+            if (detectionForm) {
+                detectionForm.addEventListener('submit', function() {
+                    if (imageInput.files && imageInput.files.length > 0) {
+                        submitBtn.classList.add('d-none');
+                        processingIndicator.classList.remove('d-none');
+                    }
+                });
+            }
+        }
+
+        function handleFiles(files) {
+            if (files && files[0]) {
+                const file = files[0];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewFilename.textContent = file.name;
+                    previewSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                    dropzonePrompt.classList.add('d-none');
+                    previewArea.classList.remove('d-none');
+                };
+
+                reader.readAsDataURL(file);
+            }
+        }
+    })();
+</script>
+{% endblock %}

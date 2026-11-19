@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Trail &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Security Audit Logs &amp; Compliance Trail{% endblock %}
+{% block page_subtitle %}Tamper-evident system activity, authentication events, tenant operations, and IP tracking{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Search & Filter Controls -->
+    <div class="glass-card p-3 mb-4">
+        <form method="GET" action="{{ url_for('admin.audit_logs') }}" class="row g-2 align-items-center">
+            <!-- Keyword / IP Search -->
+            <div class="col-md-6 col-lg-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); color: var(--text-secondary);">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-sm border-start-0" 
+                           placeholder="Search by IP, email, or action detail..." 
+                           style="background: var(--bg-surface); color: var(--text-primary); border-color: var(--border-color);">
+                </div>
+            </div>
+
+            <!-- Action Type Filter -->
+            <div class="col-md-4 col-lg-4">
+                <select name="action" class="form-select form-select-sm" style="background: var(--bg-surface); color: var(--text-primary); border-color: var(--border-color);">
+                    <option value="">All Security Events ({{ distinct_actions|length }} types)</option>
+                    {% for act in distinct_actions %}
+                    <option value="{{ act }}" {% if selected_action == act %}selected{% endif %}>{{ act }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Submit & Reset Buttons -->
+            <div class="col-md-2 col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary flex-fill">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+                {% if search_query or selected_action %}
+                <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Event Log Table -->
+    <div class="glass-card p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+            <div>
+                <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-shield-check me-2 text-warning"></i>Event History
+                </h3>
+                <small class="text-muted">Showing {{ pagination.total }} recorded security entries</small>
+            </div>
+            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 rounded-pill small">
+                Page {{ pagination.page }} of {{ pagination.pages or 1 }}
+            </span>
+        </div>
+
+        {% if logs %}
+        <div class="table-responsive">
+            <table class="table align-middle table-hover mb-0" style="color: var(--text-secondary);">
+                <thead class="small text-uppercase text-muted border-bottom" style="border-color: var(--border-color) !important; font-size: 0.72rem;">
+                    <tr>
+                        <th style="width: 170px;">Timestamp (UTC)</th>
+                        <th>Action</th>
+                        <th>User / Subject</th>
+                        <th>Client IP</th>
+                        <th>Event Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td class="small text-muted text-nowrap font-monospace" style="font-size: 0.76rem;">
+                            <i class="bi bi-clock me-1"></i>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else '' }}
+                        </td>
+                        <td>
+                            {% if 'failed' in log.action or 'unauthorized' in log.action or 'delete' in log.action %}
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 small">
+                                <i class="bi bi-x-octagon me-1"></i>{{ log.action }}
+                            </span>
+                            {% elif 'login' in log.action or 'register' in log.action or 'verified' in log.action %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small">
+                                <i class="bi bi-check2-circle me-1"></i>{{ log.action }}
+                            </span>
+                            {% elif 'scan' in log.action %}
+                            <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 small">
+                                <i class="bi bi-cpu me-1"></i>{{ log.action }}
+                            </span>
+                            {% elif 'admin' in log.action %}
+                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 small">
+                                <i class="bi bi-shield-lock me-1"></i>{{ log.action }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 small">
+                                {{ log.action }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.user %}
+                            <div class="fw-semibold small" style="color: var(--text-primary);">{{ log.user.full_name }}</div>
+                            <div class="text-muted" style="font-size: 0.72rem;">{{ log.user.email }}</div>
+                            {% else %}
+                            <span class="text-muted small fst-italic"><i class="bi bi-incognito me-1"></i>Anonymous</span>
+                            {% endif %}
+                        </td>
+                        <td class="font-monospace small">
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">
+                                {{ log.ip_address or '127.0.0.1' }}
+                            </span>
+                        </td>
+                        <td class="small" style="color: var(--text-primary); max-width: 320px;">
+                            <div class="text-break">{{ log.details or '-' }}</div>
+                            {% if log.user_agent %}
+                            <div class="text-muted text-truncate" style="font-size: 0.68rem;" title="{{ log.user_agent }}">
+                                <i class="bi bi-browser-chrome me-1"></i>{{ log.user_agent }}
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Navigation -->
+        {% if pagination.pages > 1 %}
+        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+            <div class="small text-muted">
+                Showing entries {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ [pagination.page * pagination.per_page, pagination.total]|min }} of {{ pagination.total }}
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin.audit_logs', page=pagination.prev_num, q=search_query, action=selected_action) if pagination.has_prev else '#' }}">
+                            Previous
+                        </a>
+                    </li>
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.audit_logs', page=p, q=search_query, action=selected_action) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin.audit_logs', page=pagination.next_num, q=search_query, action=selected_action) if pagination.has_next else '#' }}">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-funnel fs-2 d-block mb-2 text-secondary"></i>
+            <h5 class="fw-semibold">No Audit Logs Found</h5>
+            <p class="small mb-3">No activity matching your search parameters was found in the audit registry.</p>
+            <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-outline-secondary">
+                Reset Filters
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}

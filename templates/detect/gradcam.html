@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Grad-CAM Explainable AI &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Explainable AI (Grad-CAM) Visualizer{% endblock %}
+{% block page_subtitle %}Spatial gradient activation maps revealing convolutional decision hotspots in ResNet-18{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    {% if not result %}
+    <!-- ============================================================== -->
+    <!-- UPLOAD & GRAD-CAM LAUNCHER INTERFACE                           -->
+    <!-- ============================================================== -->
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <div class="glass-card p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm" style="width: 56px; height: 56px; background: rgba(244, 63, 94, 0.12); color: var(--accent-rose);">
+                        <i class="bi bi-layers-half fs-2"></i>
+                    </div>
+                    <h2 class="h5 fw-bold mb-1" style="color: var(--text-primary);">Explainable AI & Facial Hotspot Inspection</h2>
+                    <p class="small text-muted mb-0 mx-auto" style="max-width: 520px;">
+                        Gradient-Weighted Class Activation Mapping (Grad-CAM) computes gradients propagating back through ResNet-18 <code>layer4</code> to visually highlight the exact facial sub-regions that influenced the model's decision.
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ url_for('detect.gradcam_page') }}" enctype="multipart/form-data" id="gradcamForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Drag and Drop Zone -->
+                    <div class="mb-4">
+                        <label for="gradcamInput" class="dropzone-area p-5 text-center d-block rounded-3 border-dashed" id="gradcamDropzone" style="border: 2px dashed var(--border-color); cursor: pointer; transition: all 0.2s ease; background: var(--bg-body);">
+                            <input type="file" name="image" id="gradcamInput" class="d-none" accept=".jpg,.jpeg,.png,.webp" required>
+                            
+                            <div id="gradcamPrompt">
+                                <i class="bi bi-layers-half display-4 text-muted mb-3 d-block"></i>
+                                <span class="fw-semibold d-block mb-1" style="color: var(--text-primary);">Drag and drop face image here, or <span style="color: var(--accent-rose);">browse</span></span>
+                                <span class="small text-muted d-block">Supported formats: JPG, JPEG, PNG, WEBP (Max 64MB)</span>
+                            </div>
+
+                            <!-- Live Preview Area -->
+                            <div id="gradcamPreviewArea" class="d-none">
+                                <img id="gradcamPreviewImg" src="#" alt="Preview" class="img-fluid rounded-3 shadow-sm mb-3" style="max-height: 240px; object-fit: contain;">
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <span class="small fw-semibold text-truncate" id="gradcamFilename" style="max-width: 250px; color: var(--text-primary);"></span>
+                                    <span class="badge bg-secondary rounded-pill small" id="gradcamSize"></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" id="clearGradcamBtn" title="Remove image">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Submit Button & Spinner -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger rounded-pill py-2 fw-semibold shadow-sm" id="gradcamSubmitBtn">
+                            <i class="bi bi-layers me-2"></i>Generate Grad-CAM Heatmap
+                        </button>
+                    </div>
+
+                    <div id="gradcamProcessingIndicator" class="d-none text-center py-4">
+                        <div class="spinner-border text-danger mb-3" style="width: 2.5rem; height: 2.5rem;" role="status">
+                            <span class="visually-hidden">Backpropagating gradients...</span>
+                        </div>
+                        <h3 class="h6 fw-bold mb-1" style="color: var(--text-primary);">Calculating Convolutional Gradients</h3>
+                        <p class="small text-muted mb-0">Hooking ResNet-18 layer4 activations, computing backward score derivatives, and rendering JET colormap...</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ============================================================== -->
+    <!-- GRAD-CAM EXPLAINABLE AI RESULTS                                -->
+    <!-- ============================================================== -->
+    <div class="row g-4">
+        
+        <!-- Top: Educational Disclaimer Banner -->
+        <div class="col-12">
+            <div class="glass-card p-4 border-2" style="border-color: rgba(56, 189, 248, 0.3) !important; background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, var(--bg-card) 100%);">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.15); color: var(--accent-sky);">
+                            <i class="bi bi-lightbulb fs-4"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 rounded-pill px-3 py-1 small fw-bold mb-1">
+                                Explainable AI (XAI)
+                            </span>
+                            <h2 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                                Model Focus: {{ result.primary_focus }}
+                            </h2>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge rounded-pill {% if result.prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %} px-3 py-2 fw-semibold">
+                            Target Class: {{ result.prediction }} ({{ result.confidence }}%)
+                        </span>
+                    </div>
+                </div>
+
+                <div class="alert alert-secondary bg-opacity-10 border-0 rounded-3 mt-3 mb-0 small text-muted" style="background: var(--bg-body);">
+                    <i class="bi bi-info-circle-fill me-1 text-primary"></i>
+                    <strong>Scientific Disclaimer:</strong> Grad-CAM highlights the spatial regions that contributed most strongly to the CNN's mathematical classification. High activation indicates where the model directed its attention (such as blending seams, unnatural skin smoothness, or facial boundary warps); it serves as a decision explanation and does not in isolation prove intentional tampering.
+                </div>
+            </div>
+        </div>
+
+        <!-- 3-Column Side-by-Side Visual Comparison -->
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="fw-bold small" style="color: var(--text-primary);">
+                        <i class="bi bi-columns-gap me-2 text-primary"></i>Side-by-Side Visual Forensic Decomposition
+                    </div>
+                    <span class="small text-muted">Original Subject &bull; Raw Activation Spectrum &bull; Blended Overlay</span>
+                </div>
+
+                <div class="row g-3 text-center">
+                    <!-- Column 1: Original Cropped Face -->
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                            <div class="fw-semibold small mb-2" style="color: var(--text-primary);">1. Original Cropped Face</div>
+                            <img src="{{ url_for('static', filename=result.crop_path.replace('static/', '')) }}" alt="Original Face" class="img-fluid rounded-3 border shadow-sm mb-3" style="max-height: 280px; object-fit: contain; border-color: var(--border-color) !important;">
+                            <div class="d-grid">
+                                <a href="{{ url_for('static', filename=result.crop_path.replace('static/', '')) }}" download class="btn btn-outline-secondary btn-sm rounded-pill">
+                                    <i class="bi bi-download me-1"></i>Download Face
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Raw JET Heatmap -->
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                            <div class="fw-semibold small mb-2" style="color: var(--text-primary);">2. Raw Grad-CAM (JET Spectrum)</div>
+                            <img src="{{ url_for('static', filename=result.jet_path.replace('static/', '')) }}" alt="Raw Grad-CAM Heatmap" class="img-fluid rounded-3 border shadow-sm mb-3" style="max-height: 280px; object-fit: contain; border-color: var(--border-color) !important;">
+                            <div class="d-grid">
+                                <a href="{{ url_for('static', filename=result.jet_path.replace('static/', '')) }}" download class="btn btn-outline-secondary btn-sm rounded-pill">
+                                    <i class="bi bi-download me-1"></i>Download Heatmap
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Blended Alpha Overlay -->
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3" style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                            <div class="fw-semibold small mb-2" style="color: var(--text-primary);">3. Decision Hotspot Overlay</div>
+                            <img src="{{ url_for('static', filename=result.overlay_path.replace('static/', '')) }}" alt="Blended Overlay" class="img-fluid rounded-3 border shadow-sm mb-3" style="max-height: 280px; object-fit: contain; border-color: var(--border-color) !important;">
+                            <div class="d-grid">
+                                <a href="{{ url_for('static', filename=result.overlay_path.replace('static/', '')) }}" download class="btn btn-primary btn-sm rounded-pill shadow-sm">
+                                    <i class="bi bi-download me-1"></i>Download Overlay
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lower Row: Spatial Distribution Meters & Audit Trail -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <i class="bi bi-pie-chart text-info"></i>
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">Facial Zone Gradient Concentration</h3>
+                </div>
+
+                <div class="vstack gap-3">
+                    <!-- Zone 1: Eyes / Upper -->
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold" style="color: var(--text-primary);"><i class="bi bi-eye me-1 text-primary"></i>Eyes & Periorbital Boundary</span>
+                            <span class="fw-bold">{{ result.zone_distribution.upper_eyes }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px; background-color: var(--border-color);">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ result.zone_distribution.upper_eyes }}%;" aria-valuenow="{{ result.zone_distribution.upper_eyes }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+
+                    <!-- Zone 2: Mid-Face / Cheeks -->
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold" style="color: var(--text-primary);"><i class="bi bi-person me-1 text-info"></i>Nose Bridge & Cheeks</span>
+                            <span class="fw-bold">{{ result.zone_distribution.mid_cheeks }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px; background-color: var(--border-color);">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ result.zone_distribution.mid_cheeks }}%;" aria-valuenow="{{ result.zone_distribution.mid_cheeks }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+
+                    <!-- Zone 3: Mouth / Jawline -->
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold" style="color: var(--text-primary);"><i class="bi bi-chat-square me-1 text-danger"></i>Mouth, Lips & Jawline Seam</span>
+                            <span class="fw-bold">{{ result.zone_distribution.lower_mouth }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px; background-color: var(--border-color);">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ result.zone_distribution.lower_mouth }}%;" aria-valuenow="{{ result.zone_distribution.lower_mouth }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="small text-muted mt-3 mb-0" style="font-size: 0.8rem;">
+                    {{ result.focus_description }}
+                </p>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <i class="bi bi-cpu text-primary"></i>
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">Network Backprop Metadata</h3>
+                </div>
+
+                <ul class="list-unstyled small mb-3 vstack gap-2">
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Target Layer:</span>
+                        <span class="font-monospace fw-semibold">ResNet-18 (layer4[-1])</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Target Channels:</span>
+                        <span class="font-monospace fw-semibold">512 feature maps</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Resolution:</span>
+                        <span class="font-monospace fw-semibold">128 &times; 128 (Bilinear Interpolation)</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                        <span class="text-muted">Gradient Aggregation:</span>
+                        <span class="font-semibold">Global Average Pooling (GAP)</span>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-3 mt-auto pt-2">
+                    <a href="{{ url_for('detect.gradcam_page') }}" class="btn btn-outline-primary rounded-pill px-4 btn-sm">
+                        <i class="bi bi-cloud-arrow-up me-2"></i>Analyze Another Image
+                    </a>
+                    <a href="{{ url_for('history.list_history') }}" class="btn btn-outline-secondary rounded-pill px-4 btn-sm">
+                        <i class="bi bi-clock-history me-2"></i>History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const gradcamInput = document.getElementById('gradcamInput');
+        const gradcamDropzone = document.getElementById('gradcamDropzone');
+        const gradcamPrompt = document.getElementById('gradcamPrompt');
+        const gradcamPreviewArea = document.getElementById('gradcamPreviewArea');
+        const gradcamPreviewImg = document.getElementById('gradcamPreviewImg');
+        const gradcamFilename = document.getElementById('gradcamFilename');
+        const gradcamSize = document.getElementById('gradcamSize');
+        const clearGradcamBtn = document.getElementById('clearGradcamBtn');
+        const gradcamForm = document.getElementById('gradcamForm');
+        const gradcamSubmitBtn = document.getElementById('gradcamSubmitBtn');
+        const gradcamProcessingIndicator = document.getElementById('gradcamProcessingIndicator');
+
+        if (gradcamInput) {
+            gradcamInput.addEventListener('change', function() {
+                handleGradcamFiles(this.files);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                gradcamDropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    gradcamDropzone.style.borderColor = 'var(--accent-rose)';
+                    gradcamDropzone.style.background = 'rgba(244, 63, 94, 0.05)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                gradcamDropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    gradcamDropzone.style.borderColor = 'var(--border-color)';
+                    gradcamDropzone.style.background = 'var(--bg-body)';
+                }, false);
+            });
+
+            gradcamDropzone.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    gradcamInput.files = files;
+                    handleGradcamFiles(files);
+                }
+            }, false);
+
+            if (clearGradcamBtn) {
+                clearGradcamBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    gradcamInput.value = '';
+                    gradcamPreviewArea.classList.add('d-none');
+                    gradcamPrompt.classList.remove('d-none');
+                });
+            }
+
+            if (gradcamForm) {
+                gradcamForm.addEventListener('submit', function() {
+                    if (gradcamInput.files && gradcamInput.files.length > 0) {
+                        gradcamSubmitBtn.classList.add('d-none');
+                        gradcamProcessingIndicator.classList.remove('d-none');
+                    }
+                });
+            }
+        }
+
+        function handleGradcamFiles(files) {
+            if (files && files[0]) {
+                const file = files[0];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    gradcamPreviewImg.src = e.target.result;
+                    gradcamFilename.textContent = file.name;
+                    gradcamSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                    gradcamPrompt.classList.add('d-none');
+                    gradcamPreviewArea.classList.remove('d-none');
+                };
+
+                reader.readAsDataURL(file);
+            }
+        }
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}System Admin &bull; FACEGUARD AI{% endblock %}
+{% block page_title %}Security Control Center &amp; Platform Health{% endblock %}
+{% block page_subtitle %}Global tenant statistics, threat distribution, engine runtime status, and audit telemetry{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Total Users -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Platform Users</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--text-primary);">{{ total_users }}</div>
+                    <div class="small text-muted">
+                        <span class="text-success fw-semibold"><i class="bi bi-shield-check me-1"></i>{{ verified_users }}</span> verified &bull; 
+                        <span class="text-warning fw-semibold">{{ admin_users }}</span> admins
+                    </div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-blue"><i class="bi bi-people"></i></div>
+            </div>
+        </div>
+
+        <!-- System-wide Scans -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Total Inferences</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--text-primary);">{{ total_scans }}</div>
+                    <div class="small text-muted"><i class="bi bi-cpu text-primary me-1"></i>System-wide scans</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-green"><i class="bi bi-activity"></i></div>
+            </div>
+        </div>
+
+        <!-- Global Threat Rate -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Global Threat Ratio</div>
+                    <div class="h3 fw-bold my-1 text-danger">{{ threat_rate }}%</div>
+                    <div class="small text-muted">{{ fake_scans }} deepfakes / {{ real_scans }} authentic</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-red"><i class="bi bi-exclamation-octagon"></i></div>
+            </div>
+        </div>
+
+        <!-- Audit Records -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="glass-card kpi-widget">
+                <div>
+                    <div class="text-uppercase fw-bold text-muted small" style="font-size: 0.72rem;">Security Audit Trail</div>
+                    <div class="h3 fw-bold my-1" style="color: var(--accent-sky);">{{ total_audits }}</div>
+                    <div class="small text-muted"><i class="bi bi-journal-text me-1"></i>Tamper-evident logs</div>
+                </div>
+                <div class="kpi-icon-wrap kpi-icon-amber"><i class="bi bi-shield-lock"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Engine Runtime & Hardware Status -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1">
+                            <i class="bi bi-check-circle-fill me-1"></i>Operational
+                        </span>
+                        <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">AI Inference Engine &amp; Cloud Telemetry</h3>
+                    </div>
+                    <div class="small text-muted">
+                        <i class="bi bi-hdd-network me-1"></i>Host Environment: <strong>{{ telemetry.os }}</strong> &bull; Python <strong>{{ telemetry.python_version }}</strong>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="p-3 rounded border" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                            <div class="text-muted small mb-1"><i class="bi bi-gpu-card me-1 text-primary"></i>Inference Backend</div>
+                            <div class="fw-semibold small" style="color: var(--text-primary);">{{ telemetry.runtime_engine }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 rounded border" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                            <div class="text-muted small mb-1"><i class="bi bi-memory me-1 text-warning"></i>Host Memory Footprint</div>
+                            <div class="fw-semibold small" style="color: var(--text-primary);">
+                                {{ telemetry.memory_used_mb }} MB ({{ telemetry.memory_percent }}% RAM)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 rounded border" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                            <div class="text-muted small mb-1"><i class="bi bi-bounding-box-circles me-1 text-info"></i>Face Localizer</div>
+                            <div class="fw-semibold small" style="color: var(--text-primary);">{{ telemetry.cascade_model }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 rounded border" style="background: var(--bg-surface); border-color: var(--border-color) !important;">
+                            <div class="text-muted small mb-1"><i class="bi bi-eye me-1 text-success"></i>Explainable AI</div>
+                            <div class="fw-semibold small" style="color: var(--text-primary);">{{ telemetry.explainability_engine }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dual Tables: Recent Scans & Security Audit Trail -->
+    <div class="row g-4">
+        <!-- Recent Platform Scans -->
+        <div class="col-lg-7">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-collection-play me-2 text-primary"></i>Recent Inferences Across Tenants
+                        </h3>
+                        <small class="text-muted">Live incoming verification requests from all users</small>
+                    </div>
+                    <a href="{{ url_for('history.list_history') }}" class="btn btn-sm btn-outline-secondary">
+                        View All Scans
+                    </a>
+                </div>
+
+                {% if recent_scans %}
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover mb-0" style="color: var(--text-secondary);">
+                        <thead class="small text-uppercase text-muted border-bottom" style="border-color: var(--border-color) !important; font-size: 0.72rem;">
+                            <tr>
+                                <th>User</th>
+                                <th>Media</th>
+                                <th>Verdict</th>
+                                <th>Confidence</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in recent_scans %}
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <td>
+                                    <div class="fw-semibold small" style="color: var(--text-primary);">
+                                        {{ scan.user.full_name if scan.user else 'Unknown' }}
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">{{ scan.user.email if scan.user else '' }}</div>
+                                </td>
+                                <td>
+                                    {% if scan.media_type == 'video' %}
+                                    <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small" style="color: #c084fc; border-color: #c084fc !important;">
+                                        <i class="bi bi-camera-video me-1"></i>Video
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 small">
+                                        <i class="bi bi-image me-1"></i>Image
+                                    </span>
+                                    {% endif %}
+                                    <div class="text-truncate text-muted small" style="max-width: 140px; font-size: 0.72rem;" title="{{ scan.original_filename }}">
+                                        {{ scan.original_filename }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if scan.overall_prediction == 'FAKE' %}
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>FAKE
+                                    </span>
+                                    {% elif scan.overall_prediction == 'REAL' %}
+                                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small">
+                                        <i class="bi bi-patch-check-fill me-1"></i>REAL
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary bg-opacity-25 text-secondary small">{{ scan.overall_prediction }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-semibold small" style="color: var(--text-primary);">
+                                    {{ "%.1f"|format(scan.overall_confidence) if scan.overall_confidence else 'N/A' }}%
+                                </td>
+                                <td class="text-muted small" style="font-size: 0.76rem;">
+                                    {{ scan.created_at.strftime('%b %d, %H:%M') if scan.created_at else '' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                    <p class="small mb-0">No scans recorded on the platform yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Audit Trail -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <h3 class="h6 fw-bold mb-0" style="color: var(--text-primary);">
+                            <i class="bi bi-shield-lock me-2 text-warning"></i>Security Audit Events
+                        </h3>
+                        <small class="text-muted">Latest authentication &amp; access triggers</small>
+                    </div>
+                    <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-outline-warning">
+                        View Audit
+                    </a>
+                </div>
+
+                {% if recent_audits %}
+                <div class="list-group list-group-flush">
+                    {% for log in recent_audits %}
+                    <div class="list-group-item px-0 py-2 bg-transparent border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <div>
+                                {% if 'failed' in log.action or 'unauthorized' in log.action or 'delete' in log.action %}
+                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 small" style="font-size: 0.68rem;">
+                                    {{ log.action }}
+                                </span>
+                                {% elif 'login' in log.action or 'register' in log.action %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small" style="font-size: 0.68rem;">
+                                    {{ log.action }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25 small" style="font-size: 0.68rem;">
+                                    {{ log.action }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted" style="font-size: 0.70rem;">
+                                {{ log.timestamp.strftime('%H:%M:%S UTC') if log.timestamp else '' }}
+                            </small>
+                        </div>
+                        <div class="small text-truncate" style="color: var(--text-primary); font-size: 0.78rem;">
+                            {{ log.details or 'No event details recorded' }}
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-1 text-muted" style="font-size: 0.70rem;">
+                            <span><i class="bi bi-geo-alt me-1"></i>{{ log.ip_address or 'Unknown IP' }}</span>
+                            {% if log.user %}
+                            <span>&bull; {{ log.user.email }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-shield-check fs-2 d-block mb-2 text-secondary"></i>
+                    <p class="small mb-0">No security audit logs recorded yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
