@@ -15,6 +15,11 @@ dashboard_bp = Blueprint("dashboard", __name__)
 def index():
     return redirect(url_for("dashboard.overview"))
 
+@dashboard_bp.route("/dashboard")
+@dashboard_bp.route("/dashboard/")
+def direct_dashboard():
+    return redirect(url_for("dashboard.overview"))
+
 @dashboard_bp.route("/login")
 def direct_login():
     return redirect(url_for("dashboard.overview"))
