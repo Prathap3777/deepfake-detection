@@ -10,8 +10,8 @@ from flask import current_app
 
 def is_smtp_configured():
     """Checks whether SMTP email credentials have been provided in environment"""
-    username = current_app.config.get("MAIL_USERNAME", "")
-    password = current_app.config.get("MAIL_PASSWORD", "")
+    username = str(current_app.config.get("MAIL_USERNAME") or "").strip()
+    password = str(current_app.config.get("MAIL_PASSWORD") or "").strip()
     return bool(username and password and username.lower() != "none" and password.lower() != "none")
 
 def send_email(to_email, subject, html_content):
@@ -23,11 +23,22 @@ def send_email(to_email, subject, html_content):
         return False, "SMTP credentials not configured. Using local verification fallback."
 
     server_host = current_app.config.get("MAIL_SERVER", "smtp.gmail.com")
-    server_port = int(current_app.config.get("MAIL_PORT", 587))
+    try:
+        server_port = int(current_app.config.get("MAIL_PORT", 587))
+    except (ValueError, TypeError):
+        server_port = 587
     use_tls = current_app.config.get("MAIL_USE_TLS", True)
-    username = current_app.config.get("MAIL_USERNAME")
-    password = current_app.config.get("MAIL_PASSWORD")
+    username = str(current_app.config.get("MAIL_USERNAME") or "").strip()
+    
+    # Strip spaces for Google App Passwords (e.g. 'abcd efgh ijkl mnop' -> 'abcdefghijklmnop')
+    raw_password = str(current_app.config.get("MAIL_PASSWORD") or "").strip()
+    if "gmail" in str(server_host).lower() or "google" in str(server_host).lower():
+        password = raw_password.replace(" ", "")
+    else:
+        password = raw_password
+        
     sender_name = current_app.config.get("MAIL_SENDER_NAME", "FACEGUARD AI Security")
+    to_email = to_email.strip().lower()
 
     try:
         msg = MIMEMultipart("alternative")
@@ -50,9 +61,11 @@ def send_email(to_email, subject, html_content):
         server.quit()
         return True, "Email successfully delivered."
 
-    except smtplib.SMTPAuthenticationError:
-        return False, "SMTP Authentication failed. Please check your App Password."
+    except smtplib.SMTPAuthenticationError as e:
+        current_app.logger.error(f"SMTP Authentication Error: {e}")
+        return False, "SMTP Authentication failed. For Gmail, you must use a 16-character App Password (not your regular account password)."
     except Exception as e:
+        current_app.logger.error(f"SMTP Error: {e}")
         return False, f"Failed to deliver email: {str(e)}"
 
 def send_otp_email(to_email, otp_code, user_name="User"):
