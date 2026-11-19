@@ -171,14 +171,34 @@
                 </div>
 
                 <!-- Live Scan Result Badge Overlay (Revealed upon scan completion) -->
-                <div id="dashLiveResultBox" class="p-3 rounded mb-2 d-none" style="background: rgba(5, 10, 24, 0.85); border: 1px solid var(--border-cyber);">
+                <div id="dashLiveResultBox" class="p-3 rounded mb-2 d-none" style="background: rgba(5, 10, 24, 0.92); border: 1px solid var(--border-cyber); box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="small text-muted font-mono">LIVE VERDICT:</span>
+                        <span class="small text-muted font-mono"><i class="bi bi-shield-check me-1 text-info"></i>LIVE INFERENCE RESULT:</span>
                         <span id="dashLiveVerdictBadge" class="badge-status-real font-mono">REAL</span>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between small">
-                        <span class="text-muted">Confidence: <strong id="dashLiveConfidence" class="text-white font-mono">0.0%</strong></span>
+
+                    <!-- Dual Thumbnails: Detected Face Crop & Grad-CAM Heatmap -->
+                    <div class="row g-2 mb-2" id="dashThumbnailsRow">
+                        <div class="col-6 text-center">
+                            <div class="small text-muted font-mono mb-1" style="font-size: 0.68rem;">DETECTED FACE</div>
+                            <img id="dashFaceCropThumb" src="" alt="Face Crop" class="rounded w-100" style="max-height: 85px; object-fit: contain; background: #000; border: 1px solid var(--border-subtle);">
+                        </div>
+                        <div class="col-6 text-center">
+                            <div class="small text-muted font-mono mb-1" style="font-size: 0.68rem;">GRAD-CAM XAI</div>
+                            <img id="dashGradcamThumb" src="" alt="Grad-CAM" class="rounded w-100" style="max-height: 85px; object-fit: contain; background: #000; border: 1px solid var(--border-subtle);">
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between small mb-1">
+                        <span class="text-muted">ResNet-18 Certainty: <strong id="dashLiveConfidence" class="text-white font-mono">0.0%</strong></span>
                         <span class="text-muted">AI Risk Index: <strong id="dashLiveRisk" class="text-info font-mono">0.0 / 100</strong></span>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between small text-muted font-mono" style="font-size: 0.72rem;">
+                        <span>BBox: <span id="dashLiveBbox" class="text-info">[X: 0, Y: 0, W: 0, H: 0]</span></span>
+                        <a id="dashViewScanLink" href="#" class="text-info text-decoration-none fw-semibold">
+                            Full Dossier <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -1009,7 +1029,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.FaceScanner3D.setResult(isReal, res.confidence);
                         }
 
-                        // Reveal Live Result HUD
+                        // Reveal Live Result HUD with Face Crop, Grad-CAM and Bounding Box
                         if (resultBox && verdictBadge) {
                             resultBox.classList.remove("d-none");
                             verdictBadge.className = isReal ? "badge-status-real font-mono" : "badge-status-fake font-mono";
@@ -1017,6 +1037,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (confVal) confVal.textContent = res.confidence + "%";
                             const riskScore = (res.risk_assessment && res.risk_assessment.risk_score) ? res.risk_assessment.risk_score : (isReal ? 12 : 88);
                             if (riskVal) riskVal.textContent = riskScore + " / 100";
+
+                            const cropImg = document.getElementById("dashFaceCropThumb");
+                            if (cropImg && res.face_image_path) {
+                                cropImg.src = "/" + res.face_image_path;
+                            }
+                            const gradcamImg = document.getElementById("dashGradcamThumb");
+                            if (gradcamImg && res.gradcam_image_path) {
+                                gradcamImg.src = "/" + res.gradcam_image_path;
+                            } else if (gradcamImg && res.face_image_path) {
+                                gradcamImg.src = "/" + res.face_image_path;
+                            }
+
+                            const bboxEl = document.getElementById("dashLiveBbox");
+                            if (bboxEl && res.bounding_box) {
+                                bboxEl.textContent = `[${res.bounding_box.join(", ")}]`;
+                            }
+
+                            const dossierLink = document.getElementById("dashViewScanLink");
+                            if (dossierLink && data.scan_uuid) {
+                                dossierLink.href = "/history/" + data.scan_uuid;
+                            }
                         }
                     } else {
                         alert(data.error || "Analysis failed.");

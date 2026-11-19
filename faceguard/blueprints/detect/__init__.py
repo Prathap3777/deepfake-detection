@@ -8,7 +8,7 @@ import cv2
 from werkzeug.utils import secure_filename
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from faceguard.config import Config
+from faceguard.config import Config, BASE_DIR
 from faceguard.extensions import db
 from faceguard.models.scan import Scan, FaceResult, VideoFrame
 from faceguard.core.detector import get_predictor
@@ -75,6 +75,23 @@ def image_page():
             )
             result["risk_assessment"] = risk_info
 
+            # Generate Grad-CAM visualization for Explainable AI if face detected
+            if result.get("face_detected") and result.get("face_image_path"):
+                try:
+                    face_crop_full = os.path.join(BASE_DIR, result["face_image_path"])
+                    if os.path.exists(face_crop_full):
+                        crop_bgr = cv2.imread(face_crop_full)
+                        if crop_bgr is not None:
+                            gradcam_engine = GradCAM(predictor.model)
+                            cam_data = gradcam_engine.generate(crop_bgr)
+                            overlay_filename = f"gradcam_overlay_{scan_uuid[:8]}.jpg"
+                            overlay_path = os.path.join(Config.UPLOAD_FOLDER, overlay_filename)
+                            cv2.imwrite(overlay_path, cam_data["overlay_bgr"])
+                            result["gradcam_image_path"] = f"static/uploads/{overlay_filename}"
+                            result["gradcam_focus"] = cam_data.get("focus_description", "Facial structure focus")
+                except Exception as cam_err:
+                    current_app.logger.warning(f"GradCAM auto-generation error: {cam_err}")
+
             scan = Scan(
                 scan_uuid=scan_uuid,
                 user_id=current_user.id,
@@ -111,6 +128,7 @@ def image_page():
                 real_probability=result.get("real_probability", 0.0),
                 fake_probability=result.get("fake_probability", 0.0),
                 face_crop_path=result.get("face_image_path"),
+                gradcam_path=result.get("gradcam_image_path"),
                 ela_path=result.get("ela_image_path"),
                 fft_path=result.get("fft_image_path"),
                 sensor_variance=forensics.get("sensor_noise_variance"),
