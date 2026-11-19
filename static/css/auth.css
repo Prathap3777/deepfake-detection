@@ -1,0 +1,300 @@
+/* 
+ * Instagram-Inspired Minimalist Authentication Styling
+ * Authentic, clean aesthetic with modern responsive layout & smart autocomplete
+ */
+:root {
+    --ig-bg: #fafafa;
+    --ig-card-bg: #ffffff;
+    --ig-border: #dbdbdb;
+    --ig-text-primary: #262626;
+    --ig-text-secondary: #737373;
+    --ig-blue: #0095f6;
+    --ig-blue-hover: #1877f2;
+    --ig-blue-disabled: rgba(0, 149, 246, 0.5);
+    --ig-link: #00376b;
+    --ig-input-bg: #fafafa;
+    --ig-input-focus: #ffffff;
+    --ig-error: #ed4956;
+}
+
+body.auth-body {
+    background-color: var(--ig-bg);
+    color: var(--ig-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+}
+
+.auth-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Instagram Primary Card */
+.auth-card {
+    background: var(--ig-card-bg);
+    border: 1px solid var(--ig-border);
+    border-radius: 8px;
+    padding: 2.5rem 2.25rem 2rem;
+    text-align: center;
+}
+
+/* Instagram Secondary Bottom Card (Sign up prompt) */
+.auth-sub-card {
+    background: var(--ig-card-bg);
+    border: 1px solid var(--ig-border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+    font-size: 14px;
+    color: var(--ig-text-primary);
+}
+
+/* Brand Title & Glyph */
+.ig-brand-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.ig-brand-icon {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 26px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 12px rgba(220, 39, 67, 0.25);
+}
+
+.ig-brand-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--ig-text-primary);
+    margin: 0 0 4px;
+}
+
+.ig-brand-subtitle {
+    font-size: 12px;
+    color: var(--ig-text-secondary);
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Instagram-style Compact Inputs */
+.ig-input-group {
+    position: relative;
+    margin-bottom: 8px;
+    text-align: left;
+}
+
+.ig-input {
+    width: 100%;
+    background-color: var(--ig-input-bg);
+    border: 1px solid var(--ig-border);
+    border-radius: 4px;
+    font-size: 13px;
+    padding: 10px 12px;
+    color: var(--ig-text-primary);
+    box-sizing: border-box;
+    outline: none;
+    transition: all 0.15s ease;
+}
+
+.ig-input:focus {
+    border-color: #a8a8a8;
+    background-color: var(--ig-input-focus);
+}
+
+.ig-input::placeholder {
+    color: #8e8e8e;
+    font-size: 12px;
+}
+
+/* Instagram Show / Hide Password Text Button */
+.ig-password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ig-text-primary);
+    cursor: pointer;
+    padding: 4px;
+    display: none; /* revealed via JS when user types */
+}
+
+.ig-password-toggle:hover {
+    color: var(--ig-text-secondary);
+}
+
+/* Instagram Solid Blue Button */
+.ig-btn-primary {
+    width: 100%;
+    background-color: var(--ig-blue);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 16px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.ig-btn-primary:hover:not(:disabled) {
+    background-color: var(--ig-blue-hover);
+}
+
+.ig-btn-primary:disabled {
+    background-color: var(--ig-blue-disabled);
+    cursor: not-allowed;
+}
+
+/* Instagram Divider ("----- OR -----") */
+.ig-divider {
+    display: flex;
+    align-items: center;
+    margin: 18px 0;
+}
+
+.ig-divider-line {
+    flex: 1;
+    height: 1px;
+    background-color: var(--ig-border);
+}
+
+.ig-divider-text {
+    color: var(--ig-text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 16px;
+    text-transform: uppercase;
+}
+
+/* Links */
+.ig-link {
+    color: var(--ig-link);
+    font-size: 12px;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.ig-link:hover {
+    text-decoration: underline;
+}
+
+.ig-link-blue {
+    color: var(--ig-blue);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ig-link-blue:hover {
+    text-decoration: underline;
+}
+
+/* Smart Email Autocomplete Dropdown Menu */
+.email-autocomplete-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--ig-border);
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+    margin-top: 3px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    padding: 4px 0;
+}
+
+.email-autocomplete-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--ig-text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.1s ease;
+}
+
+.email-autocomplete-item:hover, .email-autocomplete-item.active {
+    background-color: #f2f2f2;
+}
+
+.email-autocomplete-item i {
+    color: #8e8e8e;
+    font-size: 12px;
+}
+
+.email-autocomplete-domain {
+    font-weight: 600;
+    color: var(--ig-blue);
+}
+
+/* Alerts */
+.ig-alert {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ig-alert-error {
+    background-color: #feefef;
+    color: #d93025;
+    border: 1px solid #f9d2ce;
+}
+
+.ig-alert-success {
+    background-color: #e6f4ea;
+    color: #137333;
+    border: 1px solid #ceead6;
+}
+
+.ig-alert-info {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+    border: 1px solid #d2e3fc;
+}
+
+/* Footer */
+.ig-footer {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ig-text-secondary);
+}

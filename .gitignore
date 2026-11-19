@@ -1,0 +1,27 @@
+# Virtual Environment
+venv/
+env/
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Python Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary Uploads (keep directory, ignore contents)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Large Dataset Images (keep directory structure)
+dataset/real/*
+!dataset/real/.gitkeep
+dataset/fake/*
+!dataset/fake/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db

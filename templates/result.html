@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authenticity Result - Deepfake Detection</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-dark text-light">
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark border-bottom border-secondary border-opacity-25 py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/">
+                <span class="brand-icon"><i class="bi bi-shield-check text-primary"></i></span>
+                <span class="brand-text">Face<span class="text-primary">Authentic</span> AI</span>
+            </a>
+            <a href="/" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> Back to Analyzer
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                
+                <div class="card glass-card border-secondary border-opacity-25 shadow-lg">
+                    <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 fw-semibold">
+                            <i class="bi bi-fingerprint text-primary me-2"></i> Face Authenticity Forensic Report
+                        </h5>
+                        <span class="badge {% if result.prediction == 'REAL' %}bg-success{% else %}bg-danger{% endif %} px-3 py-2 rounded-pill">
+                            {{ result.prediction }} ({{ result.confidence }}%)
+                        </span>
+                    </div>
+
+                    <div class="card-body p-4 p-md-5">
+
+                        <!-- Verdict Card -->
+                        <div class="verdict-banner p-4 rounded-4 text-center mb-4 {% if result.prediction == 'REAL' %}verdict-real{% else %}verdict-fake{% endif %}">
+                            <div class="small text-uppercase tracking-wider fw-bold text-secondary mb-1">Authenticity Verdict</div>
+                            <div class="verdict-title display-3 fw-extrabold mb-2">{{ result.prediction }}</div>
+                            <div class="lead fw-semibold mb-0">Confidence Score: {{ result.confidence }}%</div>
+                        </div>
+
+                        <!-- Probabilities Breakdown -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between small fw-semibold mb-1">
+                                <span>Real Probability</span>
+                                <span class="text-success">{{ result.real_probability }}%</span>
+                            </div>
+                            <div class="progress mb-3 bg-dark bg-opacity-50" style="height: 10px;">
+                                <div class="progress-bar bg-success" style="width: {{ result.real_probability }}%"></div>
+                            </div>
+
+                            <div class="d-flex justify-content-between small fw-semibold mb-1">
+                                <span>Fake / Manipulated Probability</span>
+                                <span class="text-danger">{{ result.fake_probability }}%</span>
+                            </div>
+                            <div class="progress bg-dark bg-opacity-50" style="height: 10px;">
+                                <div class="progress-bar bg-danger" style="width: {{ result.fake_probability }}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Comparison Gallery -->
+                        <div class="row g-4 text-center mb-4">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                    <h6 class="text-secondary small fw-bold mb-3">Original & Detected Bounding Box</h6>
+                                    <img src="{{ result.annotated_image_url }}" alt="Annotated" class="img-fluid rounded-3 shadow" style="max-height: 240px; object-fit: contain;">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                    <h6 class="text-secondary small fw-bold mb-3">Cropped Face Region (128x128)</h6>
+                                    <img src="{{ result.face_image_url }}" alt="Cropped Face" class="img-fluid rounded-3 shadow" style="max-height: 240px; object-fit: contain;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Alert -->
+                        <div class="alert alert-dark border border-secondary border-opacity-25 d-flex align-items-center gap-2 mb-4">
+                            <i class="bi bi-info-circle-fill text-primary"></i>
+                            <div><strong>Analysis Status:</strong> {{ result.analysis_status }}</div>
+                        </div>
+
+                        <!-- Reset / Re-analyze Button -->
+                        <div class="text-center">
+                            <a href="/" class="btn btn-primary btn-lg rounded-pill px-5 fw-semibold shadow">
+                                <i class="bi bi-arrow-repeat me-1"></i> Analyze Another Image
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer text-center text-secondary py-4 border-top border-secondary border-opacity-25 small mt-5">
+        <div class="container">
+            <p class="mb-0">Deepfake Image Detection and Face Authenticity Check &bull; Powered by PyTorch & OpenCV</p>
+        </div>
+    </footer>
+
+</body>
+</html>

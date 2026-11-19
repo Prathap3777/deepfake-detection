@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In &bull; Deepfake Image Detection</title>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <!-- Instagram-Inspired Custom Auth CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-body">
+
+    <div class="auth-wrapper">
+        <div class="auth-container">
+            
+            <!-- Main Login Card (Instagram Style) -->
+            <div class="auth-card">
+                
+                <!-- Brand Glyph & Header -->
+                <div class="ig-brand-logo">
+                    <div class="ig-brand-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h1 class="ig-brand-title">Deepfake Detection</h1>
+                    <p class="ig-brand-subtitle">AI-Powered Face Authenticity Verification</p>
+                </div>
+
+                <!-- Flash Alert Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="ig-alert ig-alert-{{ 'error' if category in ['error', 'danger'] else ('success' if category == 'success' else 'info') }}">
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Login Form -->
+                <form action="{{ url_for('login') }}" method="POST" autocomplete="off" id="loginForm">
+                    
+                    <!-- Email Field with Smart Autocomplete -->
+                    <div class="ig-input-group">
+                        <input 
+                            type="email" 
+                            class="ig-input" 
+                            id="email" 
+                            name="email" 
+                            placeholder="Email address" 
+                            autocomplete="off"
+                            required 
+                            autofocus
+                        >
+                        <!-- Smart Email Domain Suggestions Dropdown -->
+                        <div class="email-autocomplete-menu" id="emailDropdown"></div>
+                    </div>
+
+                    <!-- Password Field with Instagram "Show / Hide" Text Toggle (Auto-cleared on signout) -->
+                    <div class="ig-input-group">
+                        <input 
+                            type="password" 
+                            class="ig-input" 
+                            id="password" 
+                            name="password" 
+                            placeholder="Password" 
+                            autocomplete="new-password"
+                            readonly
+                            onfocus="this.removeAttribute('readonly');"
+                            required
+                        >
+                        <button type="button" class="ig-password-toggle" id="togglePasswordBtn">Show</button>
+                    </div>
+
+                    <!-- Remember Me Option -->
+                    <div style="display: flex; align-items: center; justify-content: flex-start; margin: 8px 0 14px; gap: 6px; font-size: 12px; color: #737373;">
+                        <input type="checkbox" id="rememberMe" name="remember_me" style="accent-color: #0095f6; cursor: pointer;">
+                        <label for="rememberMe" style="cursor: pointer;">Remember me on this device</label>
+                    </div>
+
+                    <!-- Submit Button (Instagram Solid Blue) -->
+                    <button type="submit" class="ig-btn-primary" id="loginSubmitBtn">
+                        Log in
+                    </button>
+
+                    <!-- Divider: ----- OR ----- -->
+                    <div class="ig-divider">
+                        <div class="ig-divider-line"></div>
+                        <div class="ig-divider-text">OR</div>
+                        <div class="ig-divider-line"></div>
+                    </div>
+
+                    <!-- Forgot Password Link -->
+                    <div style="margin-top: 10px;">
+                        <a href="{{ url_for('forgot_password') }}" class="ig-link">Forgot password?</a>
+                    </div>
+
+                </form>
+
+            </div>
+
+            <!-- Bottom Secondary Card (Instagram Style) -->
+            <div class="auth-sub-card">
+                <span>Don't have an account?</span>
+                <a href="{{ url_for('register') }}" class="ig-link-blue" style="margin-left: 4px;">Sign up</a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Minimal Instagram-Style Footer -->
+    <footer class="ig-footer">
+        <div>&copy; 2026 Deepfake Image Detection &bull; Face Authenticity AI</div>
+    </footer>
+
+    <!-- Interactive Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailInput = document.getElementById('email');
+            const emailDropdown = document.getElementById('emailDropdown');
+            const passwordInput = document.getElementById('password');
+            const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+            const loginForm = document.getElementById('loginForm');
+
+            // Popular email domains for smart auto-completion
+            const popularDomains = ['gmail.com', 'outlook.com', 'yahoo.com', 'hotmail.com', 'icloud.com'];
+
+            // 1. Force Clear Password Field on page load / sign out
+            const enforceClearPassword = () => {
+                passwordInput.value = '';
+                togglePasswordBtn.style.display = 'none';
+            };
+
+            // Run immediately and across browser autofill cycles
+            enforceClearPassword();
+            setTimeout(enforceClearPassword, 50);
+            setTimeout(enforceClearPassword, 150);
+            setTimeout(enforceClearPassword, 350);
+            setTimeout(enforceClearPassword, 600);
+
+            // 2. Remember email (keeps email convenient, but password must be re-entered)
+            const savedEmail = localStorage.getItem('last_user_email');
+            if (savedEmail && !emailInput.value) {
+                emailInput.value = savedEmail;
+            }
+
+            // 3. Smart Email Auto-suggestion on typing
+            emailInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+
+                if (!val) {
+                    emailDropdown.style.display = 'none';
+                    return;
+                }
+
+                let prefix = val;
+                let userTypedDomain = '';
+
+                if (val.includes('@')) {
+                    const parts = val.split('@');
+                    prefix = parts[0];
+                    userTypedDomain = parts[1].toLowerCase();
+                }
+
+                const matches = popularDomains.filter(d => d.startsWith(userTypedDomain));
+
+                if (matches.length > 0 && prefix.length >= 1) {
+                    emailDropdown.innerHTML = '';
+                    matches.forEach((domain, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'email-autocomplete-item' + (idx === 0 ? ' active' : '');
+                        item.innerHTML = `<i class="bi bi-envelope"></i> ${prefix}<span class="email-autocomplete-domain">@${domain}</span>`;
+                        
+                        item.addEventListener('mousedown', (evt) => {
+                            evt.preventDefault();
+                            emailInput.value = `${prefix}@${domain}`;
+                            emailDropdown.style.display = 'none';
+                            passwordInput.removeAttribute('readonly');
+                            passwordInput.focus();
+                        });
+
+                        emailDropdown.appendChild(item);
+                    });
+                    emailDropdown.style.display = 'block';
+                } else {
+                    emailDropdown.style.display = 'none';
+                }
+            });
+
+            // Keyboard navigation for email dropdown
+            emailInput.addEventListener('keydown', (e) => {
+                const items = emailDropdown.querySelectorAll('.email-autocomplete-item');
+                if (emailDropdown.style.display === 'block' && items.length > 0) {
+                    let activeIndex = -1;
+                    items.forEach((item, idx) => {
+                        if (item.classList.contains('active')) activeIndex = idx;
+                    });
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const nextIdx = (activeIndex + 1) % items.length;
+                        items.forEach(i => i.classList.remove('active'));
+                        items[nextIdx].classList.add('active');
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const prevIdx = (activeIndex - 1 + items.length) % items.length;
+                        items.forEach(i => i.classList.remove('active'));
+                        items[prevIdx].classList.add('active');
+                    } else if (e.key === 'Enter' || e.key === 'Tab') {
+                        if (activeIndex >= 0) {
+                            e.preventDefault();
+                            items[activeIndex].dispatchEvent(new Event('mousedown'));
+                        }
+                    }
+                }
+            });
+
+            // Hide dropdown on blur
+            emailInput.addEventListener('blur', () => {
+                setTimeout(() => { emailDropdown.style.display = 'none'; }, 200);
+            });
+
+            // 4. Instagram-style "Show / Hide" Password Text Toggle
+            passwordInput.addEventListener('input', () => {
+                if (passwordInput.value.length > 0) {
+                    togglePasswordBtn.style.display = 'block';
+                } else {
+                    togglePasswordBtn.style.display = 'none';
+                }
+            });
+
+            togglePasswordBtn.addEventListener('click', () => {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                togglePasswordBtn.textContent = isPassword ? 'Hide' : 'Show';
+            });
+
+            // 5. Save email to localStorage on form submit for seamless return logins
+            loginForm.addEventListener('submit', () => {
+                if (emailInput.value) {
+                    localStorage.setItem('last_user_email', emailInput.value.trim());
+                }
+            });
+        });
+    </script>
+</body>
+</html>

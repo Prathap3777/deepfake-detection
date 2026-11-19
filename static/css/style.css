@@ -1,0 +1,108 @@
+/* Deepfake Detection & Face Authenticity Web Styling */
+:root {
+    --bg-dark-primary: #0b0f19;
+    --bg-dark-secondary: #131b2e;
+    --accent-blue: #2563eb;
+    --accent-cyan: #06b6d4;
+    --accent-emerald: #10b981;
+    --accent-crimson: #ef4444;
+    --border-color: rgba(255, 255, 255, 0.08);
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-dark-primary);
+    color: #f1f5f9;
+    min-height: 100vh;
+}
+
+/* Gradient Headings */
+.gradient-text {
+    background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Glassmorphism Card Style */
+.glass-card {
+    background: rgba(19, 27, 46, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Dropzone Styling */
+.upload-dropzone {
+    border: 2px dashed rgba(59, 130, 246, 0.35);
+    background: rgba(15, 23, 42, 0.5);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    min-height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.upload-dropzone:hover, .upload-dropzone.drag-active {
+    border-color: var(--accent-blue);
+    background: rgba(37, 99, 235, 0.08);
+    transform: scale(1.01);
+}
+
+/* Verdict Banners */
+.verdict-banner {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.4s ease;
+}
+
+.verdict-real {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.05) 100%);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
+}
+
+.verdict-real .verdict-title {
+    color: #34d399;
+}
+
+.verdict-fake {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.05) 100%);
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.15);
+}
+
+.verdict-fake .verdict-title {
+    color: #f87171;
+}
+
+/* Progress bar transitions */
+.progress-bar {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Button glow effects */
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: none;
+    transition: all 0.25s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: rgba(37, 99, 235, 0.15);
+    border-radius: 10px;
+    border: 1px solid rgba(37, 99, 235, 0.3);
+}

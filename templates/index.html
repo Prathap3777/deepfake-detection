@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Image Detection & Face Authenticity Check</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-dark text-light">
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark border-bottom border-secondary border-opacity-25 py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/">
+                <span class="brand-icon"><i class="bi bi-shield-check text-primary"></i></span>
+                <span class="brand-text">Face<span class="text-primary">Authentic</span> AI</span>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill d-none d-md-inline-block">
+                    <i class="bi bi-cpu me-1"></i> PyTorch CNN Engine
+                </span>
+                {% if session.get('user_name') %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-light btn-sm rounded-pill dropdown-toggle px-3" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle me-1"></i> {{ session.get('user_name') }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                        <li><span class="dropdown-item-text text-secondary small">{{ session.get('user_email') }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm rounded-pill px-3">Log in</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container py-5">
+        
+        <!-- Header Hero Section -->
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold text-white mb-3">
+                Deepfake Image Detection & <span class="gradient-text">Face Authenticity Check</span>
+            </h1>
+            <p class="lead text-secondary mx-auto" style="max-width: 680px;">
+                Upload a facial portrait to examine high-frequency manipulation artifacts, blending seams, and determine whether the face is authentic or AI-generated.
+            </p>
+        </div>
+
+        <!-- Main Card Section -->
+        <div class="row g-4 justify-content-center">
+            
+            <!-- Left Column: Upload & Control Panel -->
+            <div class="col-lg-5">
+                <div class="card glass-card border-secondary border-opacity-25 shadow-lg h-100">
+                    <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 py-3">
+                        <h5 class="card-title mb-0 fw-semibold d-flex align-items-center gap-2">
+                            <i class="bi bi-cloud-arrow-up text-primary"></i> Image Upload & Face Detection
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column">
+                        
+                        <!-- Upload Drop Area -->
+                        <div class="upload-dropzone p-4 text-center rounded-4 mb-4" id="dropzone">
+                            <input type="file" id="imageInput" accept=".jpg, .jpeg, .png, .webp" class="d-none">
+                            <div class="upload-prompt" id="uploadPrompt">
+                                <i class="bi bi-file-earmark-person display-4 text-primary mb-3 d-block"></i>
+                                <h6 class="fw-bold mb-1">Drag and drop face image here</h6>
+                                <p class="text-secondary small mb-3">Supports JPG, JPEG, PNG, WEBP (Max 16MB)</p>
+                                <button type="button" class="btn btn-outline-primary btn-sm px-4 rounded-pill" onclick="document.getElementById('imageInput').click()">
+                                    Browse Files
+                                </button>
+                            </div>
+
+                            <!-- Preview Area -->
+                            <div class="preview-area d-none" id="previewArea">
+                                <img id="previewImage" src="" alt="Preview" class="img-fluid rounded-3 shadow mb-3" style="max-height: 240px; object-fit: contain;">
+                                <div class="text-secondary small" id="previewFilename"></div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 mt-auto">
+                            <button class="btn btn-primary btn-lg rounded-pill fw-semibold shadow" id="analyzeBtn" disabled>
+                                <span class="spinner-border spinner-border-sm me-2 d-none" id="btnSpinner" role="status"></span>
+                                <i class="bi bi-search me-1" id="btnIcon"></i>
+                                <span id="btnText">Analyse Face Authenticity</span>
+                            </button>
+                            <button class="btn btn-outline-secondary rounded-pill fw-medium" id="resetBtn" type="button">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset / Upload Another Image
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Analysis Dashboard Result -->
+            <div class="col-lg-7">
+                <div class="card glass-card border-secondary border-opacity-25 shadow-lg h-100">
+                    <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 fw-semibold d-flex align-items-center gap-2">
+                            <i class="bi bi-speedometer2 text-primary"></i> Authenticity Result Dashboard
+                        </h5>
+                        <span class="badge bg-secondary bg-opacity-25 text-secondary" id="statusBadge">Awaiting Input</span>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        <!-- Placeholder State (Before Analysis) -->
+                        <div class="text-center py-5" id="placeholderView">
+                            <i class="bi bi-shield-lock display-3 text-secondary text-opacity-50 mb-3 d-block"></i>
+                            <h6 class="text-secondary fw-semibold">No Image Analyzed Yet</h6>
+                            <p class="text-secondary text-opacity-75 small">Upload a portrait on the left and click "Analyse Face Authenticity" to view complete forensic breakdown.</p>
+                        </div>
+
+                        <!-- Result Display Section (Visible after Analysis) -->
+                        <div class="d-none" id="resultView">
+                            
+                            <!-- Verdict Banner -->
+                            <div class="verdict-banner p-4 rounded-4 text-center mb-4" id="verdictBanner">
+                                <div class="small text-uppercase tracking-wider fw-bold text-secondary mb-1">Authenticity Verdict</div>
+                                <div class="verdict-title display-4 fw-extrabold mb-2" id="verdictText">REAL</div>
+                                <div class="lead fw-semibold mb-0" id="confidenceText">Confidence: 94.5%</div>
+                            </div>
+
+                            <!-- Probability Progress Bars -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between small fw-semibold mb-1">
+                                    <span>Real Face Probability</span>
+                                    <span id="realProbText" class="text-success">--%</span>
+                                </div>
+                                <div class="progress mb-3 bg-dark bg-opacity-50" style="height: 10px;">
+                                    <div class="progress-bar bg-success" id="realProgressBar" style="width: 0%"></div>
+                                </div>
+
+                                <div class="d-flex justify-content-between small fw-semibold mb-1">
+                                    <span>Fake / Manipulated Probability</span>
+                                    <span id="fakeProbText" class="text-danger">--%</span>
+                                </div>
+                                <div class="progress mb-3 bg-dark bg-opacity-50" style="height: 10px;">
+                                    <div class="progress-bar bg-danger" id="fakeProgressBar" style="width: 0%"></div>
+                                </div>
+
+                                <!-- Digital Forensic Metrics Cards -->
+                                <div class="row g-2 text-center small mt-2">
+                                    <div class="col-4">
+                                        <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                            <div class="text-secondary" style="font-size: 0.75rem;">Sensor Variance</div>
+                                            <div class="fw-bold text-info" id="metricSensor">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                            <div class="text-secondary" style="font-size: 0.75rem;">FFT Frequency</div>
+                                            <div class="fw-bold text-info" id="metricFFT">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                            <div class="text-secondary" style="font-size: 0.75rem;">Color Coherence</div>
+                                            <div class="fw-bold text-info" id="metricChroma">--</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Visual Face Localization Breakdown -->
+                            <div class="row g-3 text-center mb-3">
+                                <div class="col-6">
+                                    <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                        <div class="small text-secondary fw-semibold mb-2">Original & Face Detection</div>
+                                        <img id="annotatedResultImg" src="" alt="Detected Face" class="img-fluid rounded-3 border border-secondary border-opacity-25" style="max-height: 160px; object-fit: contain;">
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                        <div class="small text-secondary fw-semibold mb-2">Cropped Facial ROI (128x128)</div>
+                                        <img id="faceCropResultImg" src="" alt="Face Crop" class="img-fluid rounded-3 border border-secondary border-opacity-25" style="max-height: 160px; object-fit: contain;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Forensic Analysis Status -->
+                            <div class="p-3 rounded-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25 small text-secondary">
+                                <i class="bi bi-info-circle-fill text-primary me-2"></i>
+                                <span id="analysisStatusText">Face detected and analyzed successfully.</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Optional Model Metrics Modal/Section -->
+        {% if has_metrics %}
+        <div class="row mt-5 justify-content-center">
+            <div class="col-lg-12">
+                <div class="card glass-card border-secondary border-opacity-25">
+                    <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 py-3">
+                        <h6 class="card-title mb-0 fw-semibold text-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-graph-up text-primary"></i> Trained CNN Evaluation Metrics & Confusion Matrix
+                        </h6>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                        <img src="{{ url_for('static', filename='confusion_matrix.png') }}" alt="Model Confusion Matrix" class="img-fluid rounded-3 shadow" style="max-height: 380px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer text-center text-secondary py-4 border-top border-secondary border-opacity-25 small mt-5">
+        <div class="container">
+            <p class="mb-0">Deepfake Image Detection and Face Authenticity Check &bull; Powered by PyTorch & OpenCV</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
