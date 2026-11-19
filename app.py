@@ -379,18 +379,23 @@ def api_predict():
         }), 400
 
     try:
+        mode = request.form.get('mode', 'standard')
         ext = file.filename.rsplit('.', 1)[1].lower()
         unique_name = f"upload_{uuid.uuid4().hex[:10]}.{ext}"
         saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(saved_path)
 
         engine = get_predictor()
-        result = engine.predict(saved_path, save_artifacts=True)
+        result = engine.predict(saved_path, mode=mode, save_artifacts=True)
         gc.collect()
+
         result["success"] = True
+        result["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         result["uploaded_image_url"] = url_for('static', filename=f"uploads/{unique_name}")
         result["face_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['face_image_path'])}")
         result["annotated_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['annotated_image_path'])}")
+        result["ela_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['ela_image_path'])}")
+        result["fft_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['fft_image_path'])}")
 
         return jsonify(result)
 
@@ -411,17 +416,22 @@ def form_analyze():
         return redirect(url_for('index'))
 
     try:
+        mode = request.form.get('mode', 'standard')
         ext = file.filename.rsplit('.', 1)[1].lower()
         unique_name = f"upload_{uuid.uuid4().hex[:10]}.{ext}"
         saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(saved_path)
 
         engine = get_predictor()
-        result = engine.predict(saved_path, save_artifacts=True)
+        result = engine.predict(saved_path, mode=mode, save_artifacts=True)
         gc.collect()
+
+        result["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         result["uploaded_image_url"] = url_for('static', filename=f"uploads/{unique_name}")
         result["face_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['face_image_path'])}")
         result["annotated_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['annotated_image_path'])}")
+        result["ela_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['ela_image_path'])}")
+        result["fft_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['fft_image_path'])}")
 
         return render_template('result.html', result=result)
 

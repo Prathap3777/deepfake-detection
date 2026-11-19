@@ -24,7 +24,7 @@
             </a>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill d-none d-md-inline-block">
-                    <i class="bi bi-cpu me-1"></i> PyTorch CNN Engine
+                    <i class="bi bi-cpu me-1"></i> PyTorch ResNet-18 & Multi-Domain Forensics
                 </span>
                 {% if session.get('user_name') %}
                 <div class="dropdown">
@@ -52,8 +52,8 @@
             <h1 class="display-5 fw-bold text-white mb-3">
                 Deepfake Image Detection & <span class="gradient-text">Face Authenticity Check</span>
             </h1>
-            <p class="lead text-secondary mx-auto" style="max-width: 680px;">
-                Upload a facial portrait to examine high-frequency manipulation artifacts, blending seams, and determine whether the face is authentic or AI-generated.
+            <p class="lead text-secondary mx-auto" style="max-width: 720px;">
+                Advanced forensic analysis combining deep residual vision, optical camera sensor noise, Error Level Analysis (ELA), and 2D-FFT frequency domain decay to verify face authenticity.
             </p>
         </div>
 
@@ -70,6 +70,22 @@
                     </div>
                     <div class="card-body p-4 d-flex flex-column">
                         
+                        <!-- Camera Mode Selector -->
+                        <div class="mb-3 text-center">
+                            <label class="form-label text-secondary small fw-semibold mb-2 d-block">Analysis Mode</label>
+                            <div class="mode-selector">
+                                <button type="button" class="mode-btn active" id="modeStandard" data-mode="standard">
+                                    <i class="bi bi-shield-check me-1"></i> Standard AI Scan
+                                </button>
+                                <button type="button" class="mode-btn" id="modePortrait" data-mode="portrait">
+                                    <i class="bi bi-phone me-1"></i> Mobile / Portrait
+                                </button>
+                            </div>
+                            <div class="text-secondary small mt-1" id="modeDesc" style="font-size: 0.75rem;">
+                                Balanced calibration: Inspects GAN lattice, diffusion blur, and face-swapping.
+                            </div>
+                        </div>
+
                         <!-- Upload Drop Area -->
                         <div class="upload-dropzone p-4 text-center rounded-4 mb-4" id="dropzone">
                             <input type="file" id="imageInput" accept=".jpg, .jpeg, .png, .webp" class="d-none">
@@ -84,7 +100,7 @@
 
                             <!-- Preview Area -->
                             <div class="preview-area d-none" id="previewArea">
-                                <img id="previewImage" src="" alt="Preview" class="img-fluid rounded-3 shadow mb-3" style="max-height: 240px; object-fit: contain;">
+                                <img id="previewImage" src="" alt="Preview" class="img-fluid rounded-3 shadow mb-3" style="max-height: 220px; object-fit: contain;">
                                 <div class="text-secondary small" id="previewFilename"></div>
                             </div>
                         </div>
@@ -153,47 +169,117 @@
 
                                 <!-- Digital Forensic Metrics Cards -->
                                 <div class="row g-2 text-center small mt-2">
-                                    <div class="col-4">
+                                    <div class="col-3">
                                         <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
-                                            <div class="text-secondary" style="font-size: 0.75rem;">Sensor Variance</div>
+                                            <div class="text-secondary" style="font-size: 0.7rem;">Sensor Grain</div>
                                             <div class="fw-bold text-info" id="metricSensor">--</div>
                                         </div>
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-3">
                                         <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
-                                            <div class="text-secondary" style="font-size: 0.75rem;">FFT Frequency</div>
+                                            <div class="text-secondary" style="font-size: 0.7rem;">FFT Ratio</div>
                                             <div class="fw-bold text-info" id="metricFFT">--</div>
                                         </div>
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-3">
                                         <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
-                                            <div class="text-secondary" style="font-size: 0.75rem;">Color Coherence</div>
+                                            <div class="text-secondary" style="font-size: 0.7rem;">ELA Error</div>
+                                            <div class="fw-bold text-info" id="metricELA">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="p-2 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                            <div class="text-secondary" style="font-size: 0.7rem;">Color Sync</div>
                                             <div class="fw-bold text-info" id="metricChroma">--</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Visual Face Localization Breakdown -->
-                            <div class="row g-3 text-center mb-3">
-                                <div class="col-6">
-                                    <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
-                                        <div class="small text-secondary fw-semibold mb-2">Original & Face Detection</div>
-                                        <img id="annotatedResultImg" src="" alt="Detected Face" class="img-fluid rounded-3 border border-secondary border-opacity-25" style="max-height: 160px; object-fit: contain;">
+                            <!-- Interactive Forensic Visualizer Tabs -->
+                            <div class="mb-4">
+                                <ul class="nav nav-pills forensic-nav justify-content-center gap-1 mb-3" id="forensicTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="tab-face-btn" data-bs-toggle="pill" data-bs-target="#tab-face" type="button" role="tab">
+                                            <i class="bi bi-person-bounding-box me-1"></i> Face ROI
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="tab-ela-btn" data-bs-toggle="pill" data-bs-target="#tab-ela" type="button" role="tab">
+                                            <i class="bi bi-fire me-1"></i> ELA Heatmap
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="tab-fft-btn" data-bs-toggle="pill" data-bs-target="#tab-fft" type="button" role="tab">
+                                            <i class="bi bi-soundwave me-1"></i> 2D-FFT Spectrum
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="tab-box-btn" data-bs-toggle="pill" data-bs-target="#tab-box" type="button" role="tab">
+                                            <i class="bi bi-aspect-ratio me-1"></i> Localization
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content text-center">
+                                    <div class="tab-pane fade show active" id="tab-face" role="tabpanel">
+                                        <div class="forensic-img-wrap">
+                                            <img id="faceCropResultImg" src="" alt="Face Crop">
+                                            <div class="small text-secondary mt-2">Cropped Facial ROI (128x128 Model Input)</div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
-                                        <div class="small text-secondary fw-semibold mb-2">Cropped Facial ROI (128x128)</div>
-                                        <img id="faceCropResultImg" src="" alt="Face Crop" class="img-fluid rounded-3 border border-secondary border-opacity-25" style="max-height: 160px; object-fit: contain;">
+                                    <div class="tab-pane fade" id="tab-ela" role="tabpanel">
+                                        <div class="forensic-img-wrap">
+                                            <img id="elaResultImg" src="" alt="Error Level Analysis Heatmap">
+                                            <div class="small text-secondary mt-2">Error Level Analysis (ELA) Compression Artifact Heatmap</div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="tab-fft" role="tabpanel">
+                                        <div class="forensic-img-wrap">
+                                            <img id="fftResultImg" src="" alt="2D-FFT Frequency Domain Spectrum">
+                                            <div class="small text-secondary mt-2">2D-FFT Radial Frequency Power Spectrum (GAN Grid Inspection)</div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="tab-box" role="tabpanel">
+                                        <div class="forensic-img-wrap">
+                                            <img id="annotatedResultImg" src="" alt="Detected Face">
+                                            <div class="small text-secondary mt-2">Multi-Face Localization & Coordinate Bounding Box</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Forensic Analysis Status -->
-                            <div class="p-3 rounded-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25 small text-secondary">
-                                <i class="bi bi-info-circle-fill text-primary me-2"></i>
-                                <span id="analysisStatusText">Face detected and analyzed successfully.</span>
+                            <!-- Forensic Audit Checklist -->
+                            <div class="mb-4">
+                                <h6 class="small text-uppercase fw-bold text-secondary mb-2">Forensic Integrity Audit</h6>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="audit-item">
+                                        <span class="small"><i class="bi bi-camera me-2 text-info"></i>Camera Sensor Grain & Pores</span>
+                                        <span class="badge badge-pass" id="checkSensor">PASS</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="small"><i class="bi bi-activity me-2 text-info"></i>2D-FFT Lens Frequency Decay</span>
+                                        <span class="badge badge-pass" id="checkFFT">PASS</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="small"><i class="bi bi-layers me-2 text-info"></i>ELA Compression Uniformity</span>
+                                        <span class="badge badge-pass" id="checkELA">PASS</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="small"><i class="bi bi-palette me-2 text-info"></i>Bayer RGB Well Coherence</span>
+                                        <span class="badge badge-pass" id="checkChroma">PASS</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons: Download Certificate -->
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm rounded-pill w-100 py-2 fw-semibold" id="viewCertBtn">
+                                    <i class="bi bi-award me-1"></i> View Verification Certificate
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2" id="copyHashBtn" title="Copy SHA-256 Audit Hash">
+                                    <i class="bi bi-fingerprint"></i>
+                                </button>
                             </div>
 
                         </div>
@@ -223,6 +309,56 @@
         {% endif %}
 
     </main>
+
+    <!-- Certificate Modal -->
+    <div class="modal fade" id="certModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="certificate-box text-light">
+                    <div class="certificate-watermark">AUTHENTICITY</div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="brand-icon"><i class="bi bi-shield-check text-primary"></i></span>
+                            <span class="fw-bold fs-5">FaceAuthentic AI &bull; Forensic Certificate</span>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="text-center my-4">
+                        <div class="text-secondary small text-uppercase tracking-wider">Official Inspection Verdict</div>
+                        <h2 class="display-5 fw-extrabold my-2 text-primary" id="certVerdict">REAL FACE</h2>
+                        <p class="text-secondary small" id="certConfidence">Confidence Rating: 94.5%</p>
+                    </div>
+
+                    <div class="row g-3 small my-3">
+                        <div class="col-6">
+                            <div class="text-secondary">Certificate ID:</div>
+                            <div class="fw-bold font-monospace" id="certId">FA-2026-849201</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-secondary">Timestamp:</div>
+                            <div class="fw-bold" id="certDate">2026-11-19 23:15:00</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="text-secondary">Cryptographic Digest (SHA-256):</div>
+                            <div class="fw-bold font-monospace text-truncate" id="certSha">--</div>
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary border-opacity-25 my-4">
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="small text-secondary">
+                            Certified by PyTorch ResNet-18 Deep Residual Vision & Multi-Domain Sensor Engine
+                        </div>
+                        <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> Print / Save PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="footer text-center text-secondary py-4 border-top border-secondary border-opacity-25 small mt-5">

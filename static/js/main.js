@@ -27,11 +27,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const fakeProbText = document.getElementById('fakeProbText');
     const fakeProgressBar = document.getElementById('fakeProgressBar');
     
-    const annotatedResultImg = document.getElementById('annotatedResultImg');
+    // Forensic Visualizer Elements
     const faceCropResultImg = document.getElementById('faceCropResultImg');
-    const analysisStatusText = document.getElementById('analysisStatusText');
+    const elaResultImg = document.getElementById('elaResultImg');
+    const fftResultImg = document.getElementById('fftResultImg');
+    const annotatedResultImg = document.getElementById('annotatedResultImg');
+
+    // Metrics & Audit Badges
+    const metricSensor = document.getElementById('metricSensor');
+    const metricFFT = document.getElementById('metricFFT');
+    const metricELA = document.getElementById('metricELA');
+    const metricChroma = document.getElementById('metricChroma');
+
+    const checkSensor = document.getElementById('checkSensor');
+    const checkFFT = document.getElementById('checkFFT');
+    const checkELA = document.getElementById('checkELA');
+    const checkChroma = document.getElementById('checkChroma');
+
+    // Certificate Elements
+    const viewCertBtn = document.getElementById('viewCertBtn');
+    const copyHashBtn = document.getElementById('copyHashBtn');
+    const certModalEl = document.getElementById('certModal');
+    const certVerdict = document.getElementById('certVerdict');
+    const certConfidence = document.getElementById('certConfidence');
+    const certId = document.getElementById('certId');
+    const certDate = document.getElementById('certDate');
+    const certSha = document.getElementById('certSha');
+
+    // Mode Selector Elements
+    const modeStandard = document.getElementById('modeStandard');
+    const modePortrait = document.getElementById('modePortrait');
+    const modeDesc = document.getElementById('modeDesc');
 
     let selectedFile = null;
+    let currentMode = "standard";
+    let lastAnalysisData = null;
+
+    // Handle Mode Toggling
+    if (modeStandard && modePortrait) {
+        modeStandard.addEventListener('click', () => {
+            currentMode = "standard";
+            modeStandard.classList.add('active');
+            modePortrait.classList.remove('active');
+            modeDesc.textContent = "Balanced calibration: Inspects GAN lattice, diffusion blur, and face-swapping.";
+        });
+
+        modePortrait.addEventListener('click', () => {
+            currentMode = "portrait";
+            modePortrait.classList.add('active');
+            modeStandard.classList.remove('active');
+            modeDesc.textContent = "Smartphone Portrait mode: Tolerates mobile HDR & ambient skin smoothing.";
+        });
+    }
 
     // Handle File Selection
     function handleFile(file) {
@@ -100,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset Action
     function resetForm() {
         selectedFile = null;
+        lastAnalysisData = null;
         imageInput.value = '';
         previewImage.src = '';
         previewFilename.textContent = '';
@@ -116,6 +164,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetBtn.addEventListener('click', resetForm);
 
+    // Apply Audit Badge Styling
+    function applyBadge(el, statusText) {
+        if (!el) return;
+        el.textContent = statusText;
+        if (statusText.includes('PASS')) {
+            el.className = 'badge badge-pass';
+        } else if (statusText.includes('WARN')) {
+            el.className = 'badge badge-warning';
+        } else {
+            el.className = 'badge badge-fail';
+        }
+    }
+
     // Analyze Action (AJAX)
     analyzeBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
@@ -124,12 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
         analyzeBtn.disabled = true;
         btnSpinner.classList.remove('d-none');
         btnIcon.classList.add('d-none');
-        btnText.textContent = 'Scanning Facial Artifacts...';
-        statusBadge.textContent = 'Analyzing Features...';
+        btnText.textContent = 'Analyzing Forensic Signatures...';
+        statusBadge.textContent = 'Scanning Sensor & Spectra...';
         statusBadge.className = 'badge bg-warning bg-opacity-25 text-warning';
 
         const formData = new FormData();
         formData.append('image', selectedFile);
+        formData.append('mode', currentMode);
 
         try {
             const response = await fetch('/predict', {
@@ -142,6 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Server returned an error.');
             }
+
+            lastAnalysisData = data;
 
             // Render Results
             placeholderView.classList.add('d-none');
@@ -159,21 +223,27 @@ document.addEventListener('DOMContentLoaded', () => {
             fakeProbText.textContent = `${data.fake_probability}%`;
             fakeProgressBar.style.width = `${data.fake_probability}%`;
 
-            // Update Forensic Metrics
-            const metricSensor = document.getElementById('metricSensor');
-            const metricFFT = document.getElementById('metricFFT');
-            const metricChroma = document.getElementById('metricChroma');
+            // Update Forensic Metrics Cards
             if (data.forensics) {
                 if (metricSensor) metricSensor.textContent = data.forensics.sensor_noise_variance;
                 if (metricFFT) metricFFT.textContent = data.forensics.frequency_fft_ratio;
+                if (metricELA) metricELA.textContent = data.forensics.ela_mean;
                 if (metricChroma) metricChroma.textContent = data.forensics.chromatic_coherence;
+
+                // Update Audit Checklist Badges
+                applyBadge(checkSensor, data.forensics.sensor_check || 'PASS');
+                applyBadge(checkFFT, data.forensics.fft_check || 'PASS');
+                applyBadge(checkELA, data.forensics.ela_check || 'PASS');
+                applyBadge(checkChroma, data.forensics.chroma_check || 'PASS');
             }
 
-            annotatedResultImg.src = data.annotated_image_url;
-            faceCropResultImg.src = data.face_image_url;
-            analysisStatusText.textContent = data.analysis_status;
+            // Update Images
+            if (faceCropResultImg && data.face_image_url) faceCropResultImg.src = data.face_image_url;
+            if (elaResultImg && data.ela_image_url) elaResultImg.src = data.ela_image_url;
+            if (fftResultImg && data.fft_image_url) fftResultImg.src = data.fft_image_url;
+            if (annotatedResultImg && data.annotated_image_url) annotatedResultImg.src = data.annotated_image_url;
 
-            statusBadge.textContent = `Completed (${data.prediction})`;
+            statusBadge.textContent = `Verified: ${data.prediction}`;
             statusBadge.className = `badge ${isReal ? 'bg-success' : 'bg-danger'} bg-opacity-25 ${isReal ? 'text-success' : 'text-danger'}`;
 
         } catch (err) {
@@ -187,4 +257,37 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.textContent = 'Analyse Face Authenticity';
         }
     });
+
+    // View Certificate Modal
+    if (viewCertBtn && certModalEl) {
+        const modal = new bootstrap.Modal(certModalEl);
+        viewCertBtn.addEventListener('click', () => {
+            if (!lastAnalysisData) return;
+
+            const isReal = lastAnalysisData.prediction.toUpperCase() === 'REAL';
+            certVerdict.textContent = isReal ? 'AUTHENTIC / REAL FACE' : 'SYNTHETIC / AI-GENERATED';
+            certVerdict.className = `display-5 fw-extrabold my-2 ${isReal ? 'text-success' : 'text-danger'}`;
+            certConfidence.textContent = `Confidence Rating: ${lastAnalysisData.confidence}% (Model + Sensor Multi-Domain Fusion)`;
+            certId.textContent = `FA-${lastAnalysisData.sha256 ? lastAnalysisData.sha256.substring(0, 8).toUpperCase() : '2026-X'}`;
+            certDate.textContent = lastAnalysisData.timestamp || new Date().toLocaleString();
+            certSha.textContent = lastAnalysisData.sha256 || 'N/A';
+
+            modal.show();
+        });
+    }
+
+    // Copy Hash Button
+    if (copyHashBtn) {
+        copyHashBtn.addEventListener('click', () => {
+            if (!lastAnalysisData || !lastAnalysisData.sha256) {
+                alert('No hash available to copy.');
+                return;
+            }
+            navigator.clipboard.writeText(lastAnalysisData.sha256).then(() => {
+                const originalHtml = copyHashBtn.innerHTML;
+                copyHashBtn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+                setTimeout(() => { copyHashBtn.innerHTML = originalHtml; }, 2000);
+            });
+        });
+    }
 });
