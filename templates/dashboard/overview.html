@@ -157,16 +157,28 @@
                 </div>
 
                 <!-- Dropzone / Live Analysis Target -->
-                <div class="scanner-dropzone my-3" id="dashDropzone" onclick="document.getElementById('dashFileInput').click();">
+                <div class="scanner-dropzone my-2" id="dashDropzone" onclick="document.getElementById('dashFileInput').click();">
                     <input type="file" id="dashFileInput" accept="image/*" class="d-none">
                     <div id="dropzoneDefaultView">
                         <i class="bi bi-cloud-arrow-up dropzone-icon d-block"></i>
                         <h3 class="h6 fw-bold text-white mb-1">Click to Upload or Drag &amp; Drop Face Image</h3>
-                        <p class="small text-muted mb-0">Supports JPG, PNG, WEBP (ResNet-18 Facial Crop Inference &amp; Grad-CAM)</p>
+                        <p class="small text-muted mb-0">Instant 3D Hologram Scan, ResNet-18 Dual Inference &amp; Grad-CAM</p>
                     </div>
                     <div id="dropzonePreviewView" class="d-none">
-                        <img id="dashPreviewImg" src="" alt="Scan Target" class="rounded mb-2" style="max-height: 120px; object-fit: contain; border: 1px solid var(--neon-cyan);">
-                        <div class="small fw-bold text-info" id="dashPreviewFilename">Target Selected</div>
+                        <img id="dashPreviewImg" src="" alt="Scan Target" class="rounded mb-2 shadow-sm" style="max-height: 100px; object-fit: contain; border: 1px solid var(--neon-cyan);">
+                        <div class="small fw-bold text-info font-mono" id="dashPreviewFilename">Target Selected</div>
+                    </div>
+                </div>
+
+                <!-- Live Scan Result Badge Overlay (Revealed upon scan completion) -->
+                <div id="dashLiveResultBox" class="p-3 rounded mb-2 d-none" style="background: rgba(5, 10, 24, 0.85); border: 1px solid var(--border-cyber);">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small text-muted font-mono">LIVE VERDICT:</span>
+                        <span id="dashLiveVerdictBadge" class="badge-status-real font-mono">REAL</span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between small">
+                        <span class="text-muted">Confidence: <strong id="dashLiveConfidence" class="text-white font-mono">0.0%</strong></span>
+                        <span class="text-muted">AI Risk Index: <strong id="dashLiveRisk" class="text-info font-mono">0.0 / 100</strong></span>
                     </div>
                 </div>
 
@@ -175,28 +187,31 @@
                     <div class="col-4">
                         <div class="p-2 rounded text-center" style="background: rgba(4, 8, 20, 0.6); border: 1px solid var(--border-subtle);">
                             <div class="text-muted" style="font-size: 0.68rem;">CNN VISION</div>
-                            <div class="fw-bold font-mono small text-info">ResNet-18</div>
+                            <div class="fw-bold font-mono small text-info" id="dashIndicatorCnn">ResNet-18</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="p-2 rounded text-center" style="background: rgba(4, 8, 20, 0.6); border: 1px solid var(--border-subtle);">
                             <div class="text-muted" style="font-size: 0.68rem;">FREQUENCY</div>
-                            <div class="fw-bold font-mono small text-success">2D-FFT</div>
+                            <div class="fw-bold font-mono small text-success" id="dashIndicatorFft">2D-FFT</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="p-2 rounded text-center" style="background: rgba(4, 8, 20, 0.6); border: 1px solid var(--border-subtle);">
                             <div class="text-muted" style="font-size: 0.68rem;">ERROR LEVEL</div>
-                            <div class="fw-bold font-mono small text-warning">ELA Heatmap</div>
+                            <div class="fw-bold font-mono small text-warning" id="dashIndicatorEla">ELA Heatmap</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Action Button -->
+                <!-- Action Button & Scan Launcher -->
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('detect.image_page') }}" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #0284c7 0%, #00f0ff 100%); border: none; color: #040711;">
-                        <i class="bi bi-shield-lock-fill"></i>
-                        <span>Launch Full Detection Engine</span>
+                    <button type="button" id="dashScanTriggerBtn" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #0284c7 0%, #00f0ff 100%); border: none; color: #040711;">
+                        <i class="bi bi-play-circle-fill"></i>
+                        <span id="dashScanBtnText">Start Holographic AI Scan</span>
+                    </button>
+                    <a href="{{ url_for('detect.image_page') }}" class="btn btn-outline-info rounded-pill px-3 py-2" title="Open Advanced Image Studio">
+                        <i class="bi bi-box-arrow-up-right"></i>
                     </a>
                 </div>
             </div>
@@ -738,13 +753,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // 5. Drag & Drop Live Preview on Dashboard
+    // 5. Drag & Drop Live Preview & Real-Time Hologram Scanner Connection
     const dropzone = document.getElementById("dashDropzone");
     const fileInput = document.getElementById("dashFileInput");
     const defaultView = document.getElementById("dropzoneDefaultView");
     const previewView = document.getElementById("dropzonePreviewView");
     const previewImg = document.getElementById("dashPreviewImg");
     const previewFilename = document.getElementById("dashPreviewFilename");
+    const triggerBtn = document.getElementById("dashScanTriggerBtn");
+    const btnText = document.getElementById("dashScanBtnText");
+    const resultBox = document.getElementById("dashLiveResultBox");
+    const verdictBadge = document.getElementById("dashLiveVerdictBadge");
+    const confVal = document.getElementById("dashLiveConfidence");
+    const riskVal = document.getElementById("dashLiveRisk");
+
+    let selectedScanFile = null;
 
     if (dropzone && fileInput) {
         ["dragenter", "dragover"].forEach(evt => {
@@ -777,19 +800,90 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function handleFile(file) {
             if (!file.type.startsWith("image/")) {
-                alert("Please select an image file.");
+                alert("Please select an image file (JPG, PNG, WEBP).");
                 return;
             }
+            selectedScanFile = file;
             const reader = new FileReader();
             reader.onload = function (e) {
                 previewImg.src = e.target.result;
                 previewFilename.textContent = file.name;
                 defaultView.classList.add("d-none");
                 previewView.classList.remove("d-none");
+                if (btnText) btnText.textContent = "Scan " + file.name;
             };
             reader.readAsDataURL(file);
+        }
+
+        // Live Scanning Trigger
+        if (triggerBtn) {
+            triggerBtn.addEventListener("click", function () {
+                if (!selectedScanFile) {
+                    fileInput.click();
+                    return;
+                }
+
+                // 1. Activate 3D Holographic Scanner High-Frequency Sweep
+                if (window.FaceScanner3D) {
+                    window.FaceScanner3D.startScan();
+                }
+                triggerBtn.disabled = true;
+                if (btnText) btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Inference in progress...';
+
+                // 2. Transmit to Flask backend via AJAX with CSRF token
+                const formData = new FormData();
+                formData.append("image", selectedScanFile);
+
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfToken = csrfMeta ? csrfMeta.getAttribute("content") : "";
+
+                fetch("{{ url_for('detect.image_page') }}", {
+                    method: "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    triggerBtn.disabled = false;
+                    if (btnText) btnText.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Scan Another Image';
+
+                    if (data.success && data.result) {
+                        const res = data.result;
+                        const isReal = res.prediction === "REAL";
+
+                        // Update 3D Holographic Mesh Color & Laser State
+                        if (window.FaceScanner3D) {
+                            window.FaceScanner3D.setResult(isReal, res.confidence);
+                        }
+
+                        // Reveal Live Result HUD
+                        if (resultBox && verdictBadge) {
+                            resultBox.classList.remove("d-none");
+                            verdictBadge.className = isReal ? "badge-status-real font-mono" : "badge-status-fake font-mono";
+                            verdictBadge.innerHTML = isReal ? '<i class="bi bi-shield-check"></i>REAL' : '<i class="bi bi-exclamation-triangle"></i>FAKE';
+                            if (confVal) confVal.textContent = res.confidence + "%";
+                            const riskScore = (res.risk_assessment && res.risk_assessment.risk_score) ? res.risk_assessment.risk_score : (isReal ? 12 : 88);
+                            if (riskVal) riskVal.textContent = riskScore + " / 100";
+                        }
+                    } else {
+                        alert(data.error || "Analysis failed.");
+                        if (window.FaceScanner3D) window.FaceScanner3D.reset();
+                    }
+                })
+                .catch(err => {
+                    console.error("Scanning error:", err);
+                    triggerBtn.disabled = false;
+                    if (btnText) btnText.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i>Start Holographic AI Scan';
+                    if (window.FaceScanner3D) window.FaceScanner3D.reset();
+                });
+            });
         }
     }
 });
 </script>
+<!-- 3D Holographic Face Scanner Module -->
+<script src="{{ url_for('static', filename='js/face_scanner_3d.js') }}"></script>
 {% endblock %}
