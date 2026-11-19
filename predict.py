@@ -15,8 +15,26 @@ import torch.nn as nn
 from torchvision import transforms
 from PIL import Image
 
-# Import the model architecture
-from train_model import DeepfakeDetectorNet, IMAGE_SIZE
+# Model Architecture (Self-contained to eliminate training-time dependencies like sklearn/matplotlib)
+IMAGE_SIZE = (128, 128)
+
+class DeepfakeDetectorNet(nn.Module):
+    def __init__(self, num_classes=2, pretrained=False):
+        super(DeepfakeDetectorNet, self).__init__()
+        from torchvision import models
+        weights = models.ResNet18_Weights.DEFAULT if pretrained else None
+        self.backbone = models.resnet18(weights=weights)
+        in_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Sequential(
+            nn.Dropout(p=0.4),
+            nn.Linear(in_features, 128),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.3),
+            nn.Linear(128, num_classes)
+        )
+
+    def forward(self, x):
+        return self.backbone(x)
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(PROJECT_DIR, "model", "deepfake_detector.pt")

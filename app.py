@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Local modules
-from predict import DeepfakePredictor
+import gc
 from database import (
     init_db, get_user_by_email, get_user_by_id, create_user,
     update_user_otp, increment_otp_attempts, activate_user,
@@ -41,10 +41,17 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Initialize SQLite database on startup
 init_db()
 
-# Initialize Predictor once at startup
-print("[*] Initializing Deepfake Detection Inference Engine...")
-predictor = DeepfakePredictor()
-print("[✓] Inference Engine initialized and ready to serve requests.")
+# Lazy-loaded inference engine (keeps startup memory under 50MB for Render free tier)
+_predictor = None
+
+def get_predictor():
+    global _predictor
+    if _predictor is None:
+        print("[*] Loading Deepfake Detection Inference Engine...")
+        from predict import DeepfakePredictor
+        _predictor = DeepfakePredictor()
+        print("[✓] Inference Engine loaded successfully.")
+    return _predictor
 
 def allowed_file(filename):
     """Validates allowed image file extensions"""
@@ -377,7 +384,9 @@ def api_predict():
         saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(saved_path)
 
-        result = predictor.predict(saved_path, save_artifacts=True)
+        engine = get_predictor()
+        result = engine.predict(saved_path, save_artifacts=True)
+        gc.collect()
         result["success"] = True
         result["uploaded_image_url"] = url_for('static', filename=f"uploads/{unique_name}")
         result["face_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['face_image_path'])}")
@@ -407,7 +416,9 @@ def form_analyze():
         saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
         file.save(saved_path)
 
-        result = predictor.predict(saved_path, save_artifacts=True)
+        engine = get_predictor()
+        result = engine.predict(saved_path, save_artifacts=True)
+        gc.collect()
         result["uploaded_image_url"] = url_for('static', filename=f"uploads/{unique_name}")
         result["face_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['face_image_path'])}")
         result["annotated_image_url"] = url_for('static', filename=f"uploads/{os.path.basename(result['annotated_image_path'])}")
