@@ -33,10 +33,11 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # 1. Transfer Learning Deepfake Detector
 # ==========================================
 class DeepfakeDetectorNet(nn.Module):
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes=2, pretrained=False):
         super(DeepfakeDetectorNet, self).__init__()
-        # Use ResNet-18 pre-trained on ImageNet for rich visual feature representations
-        self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        # Use ResNet-18 backbone (only download ImageNet default when training from scratch)
+        weights = models.ResNet18_Weights.DEFAULT if pretrained else None
+        self.backbone = models.resnet18(weights=weights)
         in_features = self.backbone.fc.in_features
         self.backbone.fc = nn.Sequential(
             nn.Dropout(p=0.4),

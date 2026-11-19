@@ -25,6 +25,10 @@ CASCADE_PATH = os.path.join(PROJECT_DIR, "model", "haarcascade_frontalface_defau
 UPLOADS_DIR = os.path.join(PROJECT_DIR, "static", "uploads")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Optimize memory consumption for cloud deployment (512MB RAM budget)
+torch.set_grad_enabled(False)
+torch.set_num_threads(1)
+
 class DeepfakePredictor:
     def __init__(self, model_path=MODEL_PATH, cascade_path=CASCADE_PATH):
         self.device = DEVICE
@@ -36,8 +40,8 @@ class DeepfakePredictor:
         else:
             self.classes = ['fake', 'real']
 
-        # 2. Initialize ResNet-18 Model
-        self.model = DeepfakeDetectorNet(num_classes=len(self.classes)).to(self.device)
+        # 2. Initialize ResNet-18 Model without re-downloading ImageNet weights
+        self.model = DeepfakeDetectorNet(num_classes=len(self.classes), pretrained=False).to(self.device)
         if os.path.exists(model_path):
             checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
             self.model.load_state_dict(checkpoint['model_state_dict'])
