@@ -100,73 +100,33 @@
     <!-- 2. HOLOGRAPHIC 3D FACE SCANNER & AI ANALYSIS STAGE             -->
     <!-- ============================================================== -->
     <div class="row g-3 mb-4">
-        <!-- Left: Large Holographic 3D Face Scanner (Three.js Stage) -->
+        <!-- Left: Ultra-Detailed 3D Holographic Biometric Face Scanner (Matching Photo 2) -->
         <div class="col-lg-6">
-            <div class="cyber-card scanner-viewport-card corner-bracket">
-                <!-- Three.js Canvas Container -->
-                <div id="faceScanner3DContainer"></div>
+            <div class="cyber-card scanner-viewport-card corner-bracket p-0 overflow-hidden position-relative d-flex align-items-center justify-content-center" id="faceScannerCard" style="background: #030814;">
+                <!-- High-Resolution Holographic Face Mesh Render (Photo 2) -->
+                <img src="{{ url_for('static', filename='holographic_face_render.jpg') }}" 
+                     alt="3D Biometric Holographic Face Mesh" 
+                     class="holographic-face-img w-100 h-100" 
+                     id="holographicFaceRenderImg" />
 
                 <!-- Animated Laser Scan Sweep Line -->
-                <div class="laser-scan-line"></div>
+                <div class="laser-scan-line" id="holographicLaserLine"></div>
 
-                <!-- HUD Holographic Scanner Overlay -->
-                <div class="scanner-hud">
-                    <div class="hud-header">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="hud-tag"><i class="bi bi-camera me-1"></i>3D BIOMETRIC MESH</span>
-                            <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 font-mono small">68 LANDMARKS</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-0" id="btnScannerToggleScan" title="Start/Stop Laser Scan" style="font-size: 0.72rem; pointer-events: auto;">
-                                <i id="scanToggleIcon" class="bi bi-play-circle me-1"></i>SCAN
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-0" id="btnScannerToggleRot" title="Pause/Resume Auto Rotation" style="font-size: 0.72rem; pointer-events: auto;">
-                                <i id="autoRotIcon" class="bi bi-pause-fill"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-0" id="btnScannerFullscreen" title="Toggle Fullscreen" style="font-size: 0.72rem; pointer-events: auto;">
-                                <i class="bi bi-arrows-fullscreen"></i>
-                            </button>
-                            <div class="text-end font-mono ms-1" style="font-size: 0.72rem; color: var(--neon-cyan);">
-                                <div>ROT: <span id="faceRotX">0.00</span>&deg;</div>
-                                <div>FPS: <span id="faceFps">60.0</span></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Reticle Ring -->
-                    <div class="hud-reticle"></div>
-
-                    <div class="hud-footer">
-                        <div class="telemetry-row">
-                            <div>SURFACE: <span class="telemetry-val">PARAMETRIC WIREFRAME</span></div>
-                            <div>OPTICAL GRAIN: <span class="telemetry-val">PRNU ACTIVE</span></div>
-                            <div>SPECTRUM: <span class="telemetry-val">2D-FFT RADIAL DECAY</span></div>
-                        </div>
-                        <div class="d-flex align-items-center gap-1 flex-wrap mt-2" style="pointer-events: auto;">
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerRotLeft" title="Rotate Left" style="font-size: 0.72rem;">
-                                <i class="bi bi-arrow-left me-1"></i>ROT L
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerRotRight" title="Rotate Right" style="font-size: 0.72rem;">
-                                ROT R<i class="bi bi-arrow-right ms-1"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerZoomIn" title="Zoom In" style="font-size: 0.72rem;">
-                                <i class="bi bi-zoom-in"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerZoomOut" title="Zoom Out" style="font-size: 0.72rem;">
-                                <i class="bi bi-zoom-out"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1 active" id="btnScannerToggleWireframe" title="Toggle Wireframe Mesh" style="font-size: 0.72rem;">
-                                <i class="bi bi-grid-3x3 me-1"></i>MESH
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1 active" id="btnScannerToggleLandmarks" title="Toggle 68 Facial Landmarks" style="font-size: 0.72rem;">
-                                <i class="bi bi-dot"></i>POINTS
-                            </button>
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="resetFaceViewBtn" title="Reset View" style="font-size: 0.72rem;">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>RESET
-                            </button>
-                        </div>
-                    </div>
+                <!-- Live Biometric Status Pill -->
+                <div class="position-absolute top-0 start-0 m-3 d-flex align-items-center gap-2" style="z-index: 10; pointer-events: none;">
+                    <span class="pulse-beacon beacon-cyan" id="scannerBeacon"></span>
+                    <span class="badge bg-dark bg-opacity-75 text-info border border-info border-opacity-50 font-mono small px-2 py-1 shadow-sm" id="scannerBadge">
+                        <i class="bi bi-shield-check me-1"></i>SYSTEM ONLINE
+                    </span>
                 </div>
+
+                <!-- Interactive Reset Hotspot (positioned over bottom-right RESET VIEW in Photo 2) -->
+                <button id="resetFaceViewBtn" 
+                        class="btn position-absolute bottom-0 end-0 m-3 px-3 py-1 font-mono text-info border-0" 
+                        title="Reset Holographic View" 
+                        style="z-index: 10; background: transparent; cursor: pointer; opacity: 0.01;">
+                    RESET VIEW
+                </button>
             </div>
         </div>
 
