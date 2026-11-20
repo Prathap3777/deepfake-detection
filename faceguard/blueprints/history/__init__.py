@@ -112,4 +112,11 @@ def delete_scan(scan_uuid):
 
     log_audit("scan_deleted", f"Deleted scan record #{scan_uuid[:8]} ({scan.original_filename})")
     flash(f"Scan #{scan_uuid[:8]} has been deleted successfully.", "success")
+
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"success": True, "message": f"Scan #{scan_uuid[:8]} has been deleted successfully."})
+
+    next_url = request.args.get("next") or request.form.get("next")
+    if next_url:
+        return redirect(next_url)
     return redirect(url_for("history.list_history"))

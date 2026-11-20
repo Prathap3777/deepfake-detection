@@ -194,17 +194,34 @@
                         </div>
                     </div>
 
-                    <!-- Dropzone Area -->
-                    <div class="scanner-dropzone mb-3" id="dashDropzone" onclick="document.getElementById('dashFileInput').click();">
+                    <!-- Dropzone Area with Delete / Clear Options -->
+                    <div class="scanner-dropzone mb-3 position-relative" id="dashDropzone">
                         <input type="file" id="dashFileInput" accept="image/*" class="d-none">
-                        <div id="dropzoneDefaultView">
+                        
+                        <!-- Default Upload View -->
+                        <div id="dropzoneDefaultView" onclick="document.getElementById('dashFileInput').click();" style="cursor: pointer;">
                             <i class="bi bi-cloud-arrow-up dropzone-icon d-block"></i>
                             <h3 class="h6 fw-bold text-white mb-1">Click to Upload or Drag &amp; Drop Face Image</h3>
                             <p class="small text-muted mb-0">Instant 3D Hologram Scan, ResNet-18 Dual Inference &amp; Grad-CAM</p>
                         </div>
-                        <div id="dropzonePreviewView" class="d-none">
-                            <img id="dashPreviewImg" src="" alt="Scan Target" class="rounded mb-2 shadow-sm" style="max-height: 90px; object-fit: contain; border: 1px solid var(--neon-cyan);">
-                            <div class="small fw-bold text-info font-mono" id="dashPreviewFilename">Target Selected</div>
+                        
+                        <!-- Selected Image Preview View with Clear / Delete Options -->
+                        <div id="dropzonePreviewView" class="d-none text-center py-1">
+                            <div class="position-relative d-inline-block">
+                                <img id="dashPreviewImg" src="" alt="Scan Target" class="rounded mb-2 shadow-sm" style="max-height: 95px; object-fit: contain; border: 1px solid var(--neon-cyan);">
+                                <button type="button" id="dashDeleteFileBadgeBtn" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-0 d-flex align-items-center justify-content-center shadow-lg" style="width: 24px; height: 24px; transform: translate(35%, -35%); z-index: 10;" title="Delete / remove selected image">
+                                    <i class="bi bi-x-lg" style="font-size: 0.72rem;"></i>
+                                </button>
+                            </div>
+                            <div class="small fw-bold text-info font-mono text-truncate px-2" id="dashPreviewFilename">Target Selected</div>
+                            <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                                <button type="button" onclick="document.getElementById('dashFileInput').click();" class="btn btn-sm btn-outline-info font-mono rounded-pill px-3 py-1" style="font-size: 0.74rem;">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Change Image
+                                </button>
+                                <button type="button" id="dashDeleteFileBtn" class="btn btn-sm btn-outline-danger font-mono rounded-pill px-3 py-1" style="font-size: 0.74rem;" title="Delete selected image">
+                                    <i class="bi bi-trash3 me-1"></i>Delete Image
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -212,7 +229,12 @@
                     <div id="dashLiveResultBox" class="p-3 rounded mb-3 d-none" style="background: rgba(5, 10, 24, 0.92); border: 1px solid var(--border-cyber); box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="small text-muted font-mono"><i class="bi bi-fingerprint me-1 text-info"></i>LIVE FORENSIC DOSSIER:</span>
-                            <span id="dashLiveVerdictBadge" class="badge-status-real font-mono">REAL</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span id="dashLiveVerdictBadge" class="badge-status-real font-mono">REAL</span>
+                                <button type="button" id="dashDeleteLiveScanBtn" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0 font-mono" style="font-size: 0.72rem;" title="Delete this scan from database">
+                                    <i class="bi bi-trash3 me-1"></i>DELETE
+                                </button>
+                            </div>
                         </div>
                         <div class="row g-2 mb-2" id="dashThumbnailsRow">
                             <div class="col-6 text-center">
@@ -594,7 +616,7 @@
                         </thead>
                         <tbody>
                             {% for scan in recent_scans %}
-                            <tr>
+                            <tr id="scan-row-{{ scan.scan_uuid }}">
                                 <td class="font-mono text-muted small">#{{ scan.scan_uuid[:8] }}</td>
                                 <td class="fw-semibold text-truncate text-white" style="max-width: 240px;" title="{{ scan.original_filename }}">
                                     {{ scan.original_filename }}
@@ -632,9 +654,17 @@
                                     </div>
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ url_for('history.view_scan', scan_uuid=scan.scan_uuid) }}" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1 font-mono" style="font-size: 0.75rem;">
-                                        INSPECT
-                                    </a>
+                                    <div class="d-flex align-items-center justify-content-end gap-1">
+                                        <a href="{{ url_for('history.view_scan', scan_uuid=scan.scan_uuid) }}" class="btn btn-sm btn-outline-info rounded-pill px-2 py-1 font-mono" style="font-size: 0.72rem;">
+                                            INSPECT
+                                        </a>
+                                        <form method="POST" action="{{ url_for('history.delete_scan', scan_uuid=scan.scan_uuid) }}" onsubmit="return confirm('Permanently delete scan #{{ scan.scan_uuid[:8] }}?');" class="d-inline">
+                                            <input type="hidden" name="next" value="{{ url_for('dashboard.overview') }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 font-mono" style="font-size: 0.72rem;" title="Delete this scan record">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -946,6 +976,98 @@ document.addEventListener("DOMContentLoaded", function () {
     const riskVal = document.getElementById("dashLiveRisk");
 
     let selectedScanFile = null;
+    let currentScanUuid = null;
+
+    function clearSelectedFile(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        selectedScanFile = null;
+        if (fileInput) fileInput.value = "";
+        if (previewImg) previewImg.src = "";
+        if (previewFilename) previewFilename.textContent = "Target Selected";
+        if (previewView) previewView.classList.add("d-none");
+        if (defaultView) defaultView.classList.remove("d-none");
+        if (btnText) btnText.textContent = "Start AI Face Scan";
+
+        // Reset progress bar
+        const progressBar = document.getElementById("aiScanProgressBar");
+        const progressPercent = document.getElementById("aiScanProgressPercent");
+        const statusSubtitle = document.getElementById("aiScannerStatusSubtitle");
+        const engineBadge = document.getElementById("engineStatusBadge");
+        if (progressBar) progressBar.style.width = "0%";
+        if (progressPercent) progressPercent.textContent = "0%";
+        if (statusSubtitle) statusSubtitle.textContent = "Real-time Analysis in Progress...";
+        if (engineBadge) {
+            engineBadge.textContent = "ENGINE READY";
+            engineBadge.style.color = "";
+            engineBadge.style.borderColor = "";
+            engineBadge.className = "badge bg-info bg-opacity-25 text-info border border-info border-opacity-50 font-mono small";
+        }
+
+        // Reset telemetry cards
+        const pFaces = document.getElementById("panelFacesDetected");
+        const pPred = document.getElementById("panelPrediction");
+        const pIconBox = document.getElementById("panelPredictionIconBox");
+        const pIcon = document.getElementById("panelPredictionIcon");
+        const pConf = document.getElementById("panelConfidence");
+        if (pFaces) pFaces.textContent = "--";
+        if (pPred) {
+            pPred.textContent = "Awaiting Input";
+            pPred.className = "telemetry-value text-muted";
+        }
+        if (pIconBox) pIconBox.className = "telemetry-icon-box icon-green";
+        if (pIcon) pIcon.className = "bi bi-shield-check";
+        if (pConf) pConf.textContent = "--%";
+
+        // Reset Live result box & 3D holographic state
+        if (resultBox) resultBox.classList.add("d-none");
+        if (window.FaceScanner3D) window.FaceScanner3D.reset();
+    }
+
+    const deleteFileBtn = document.getElementById("dashDeleteFileBtn");
+    const deleteBadgeBtn = document.getElementById("dashDeleteFileBadgeBtn");
+    if (deleteFileBtn) deleteFileBtn.addEventListener("click", clearSelectedFile);
+    if (deleteBadgeBtn) deleteBadgeBtn.addEventListener("click", clearSelectedFile);
+
+    const deleteLiveBtn = document.getElementById("dashDeleteLiveScanBtn");
+    if (deleteLiveBtn) {
+        deleteLiveBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!currentScanUuid) {
+                clearSelectedFile();
+                return;
+            }
+            if (!confirm(`Are you sure you want to permanently delete scan #${currentScanUuid.slice(0, 8)}?`)) {
+                return;
+            }
+            deleteLiveBtn.disabled = true;
+            deleteLiveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>DELETING...';
+
+            fetch("/history/" + currentScanUuid + "/delete", {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const row = document.getElementById("scan-row-" + currentScanUuid);
+                if (row) row.remove();
+                currentScanUuid = null;
+                clearSelectedFile();
+            })
+            .catch(err => {
+                console.error("Delete error:", err);
+                deleteLiveBtn.disabled = false;
+                deleteLiveBtn.innerHTML = '<i class="bi bi-trash3 me-1"></i>DELETE';
+                alert("Could not delete scan. Please try again.");
+            });
+        });
+    }
 
     if (dropzone && fileInput) {
         ["dragenter", "dragover"].forEach(evt => {
@@ -1132,6 +1254,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 bboxEl.textContent = `[${res.bounding_box.join(", ")}]`;
                             }
 
+                            currentScanUuid = data.scan_uuid;
                             const dossierLink = document.getElementById("dashViewScanLink");
                             if (dossierLink && data.scan_uuid) {
                                 dossierLink.href = "/history/" + data.scan_uuid;
