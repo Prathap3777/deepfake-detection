@@ -1,15 +1,20 @@
 /**
  * FACEGUARD AI - Advanced 3D Holographic Face Scanner
  * Module: static/js/face_scanner_3d.js
- * Powered by Three.js (r128)
+ * Powered by Three.js (r128) & GSAP
  * 
- * Phase 3 Upgrade:
- * - Fine triangular biometric landmark contour networks (Jawline, Brows, Nose, Eyes, Lips)
- * - 3D Holographic Cyber Targeting Framing Brackets & Crosshair Notches matching Image 2
- * - Upward Holographic Projection Emitter Light Cone with Additive Volumetric Luminescence
- * - Pulsating landmark nodes, glowing connection lines, and animated wireframe illumination
- * - Multi-ring rotating scanning pedestal with ground emission flares
- * - Preserves interactive mouse/touch controls, FPS/ROT telemetry, and Flask detection hooks
+ * Phase 4 Upgrade:
+ * - Interactive Control Suite:
+ *   • Reset View
+ *   • Rotate Left & Rotate Right
+ *   • Zoom In & Zoom Out (Plus mouse wheel zoom)
+ *   • Pause & Resume Auto-Rotation
+ *   • Toggle 3D Wireframe Visibility
+ *   • Toggle 68 Facial Landmarks & Contour Networks
+ *   • Start & Stop Scan (High-Frequency Hologram Laser Sweep)
+ *   • Fullscreen Mode
+ * - Cinematic Scanning Animations & GSAP Transition Timelines
+ * - Smooth camera transitions and state coordination
  */
 
 (function () {
@@ -37,6 +42,11 @@
             this.previousMousePosition = { x: 0, y: 0 };
             this.isScanning = false;
             this.scanState = "idle"; // 'idle' | 'scanning' | 'real' | 'fake'
+            this.autoRotate = true;
+
+            // Visibility states
+            this.wireframeVisible = true;
+            this.landmarksVisible = true;
 
             // Laser state
             this.laserY = 0;
@@ -45,6 +55,7 @@
 
             // Dynamic materials for pulsation
             this.contourMaterials = [];
+            this.contourLines = [];
 
             // Telemetry elements
             this.rotEl = document.getElementById("faceRotX");
@@ -144,13 +155,11 @@
 
                 // --- Frontal Facial Features Sculpting (z > -0.2) ---
                 if (z > -0.2) {
-                    // Forehead curvature & Supraorbital brow ridge
                     if (y > 0.28 && y < 0.62) {
                         const brow = Math.exp(-Math.pow(y - 0.40, 2) / 0.018) * Math.exp(-Math.pow(x, 2) / 0.38);
                         z += brow * 0.17;
                     }
 
-                    // Eye sockets: Anatomical orbital recesses (bilateral)
                     for (let side of [-0.31, 0.31]) {
                         const dEye = Math.hypot(x - side, y - 0.24);
                         if (dEye < 0.23) {
@@ -163,7 +172,6 @@
                         }
                     }
 
-                    // Nose structure: Dorsal bridge, pronasale tip, and alar wings
                     if (y > -0.18 && y < 0.34 && Math.abs(x) < 0.25) {
                         const bridgeWidth = 0.08 + (0.34 - y) * 0.25;
                         if (Math.abs(x) < bridgeWidth) {
@@ -179,7 +187,6 @@
                         }
                     }
 
-                    // Cheeks / Zygomatic arch
                     for (let cSide of [-0.46, 0.46]) {
                         const dCheek = Math.hypot(x - cSide, y - 0.02);
                         if (dCheek < 0.28) {
@@ -187,7 +194,6 @@
                         }
                     }
 
-                    // Lips & Mouth: Philtrum, Cupid's Bow, Upper and Lower Lips
                     if (y > -0.46 && y < -0.18 && Math.abs(x) < 0.28) {
                         const lipW = 0.26;
                         if (Math.abs(x) < lipW) {
@@ -203,21 +209,18 @@
                         }
                     }
 
-                    // Chin: Mental protuberance
                     if (y > -0.74 && y < -0.44 && Math.abs(x) < 0.26) {
                         const chinF = (1.0 - Math.abs(x) / 0.26) * Math.sin(((y - (-0.74)) / 0.30) * Math.PI);
                         z += chinF * 0.23;
                     }
                 }
 
-                // Mandibular angle & jawline tapering
                 if (y < -0.15 && y > -0.76) {
                     const t = (y - (-0.15)) / (-0.61);
                     x *= (1.0 - t * 0.36);
                     if (z > 0) z *= (1.0 - t * 0.14);
                 }
 
-                // Anatomical Ear Bilateral Protrusions
                 if (y > -0.16 && y < 0.34 && Math.abs(x) > 0.60) {
                     const earY = (y - 0.09) / 0.25;
                     const earShape = Math.max(0, 1 - Math.pow(earY, 2));
@@ -228,7 +231,6 @@
                     }
                 }
 
-                // Descending Cervical Neck Column
                 if (y <= -0.70) {
                     const neckT = Math.min(1.0, (y - (-0.70)) / (-0.65));
                     const neckRad = 0.44 + neckT * 0.24;
@@ -257,7 +259,7 @@
             this.faceMesh = new THREE.Mesh(geometry, this.meshMaterial);
             this.faceGroup.add(this.faceMesh);
 
-            // 2. Volumetric Luminescent Inner Core (Gives true holographic substance)
+            // 2. Volumetric Luminescent Inner Core
             const coreMaterial = new THREE.MeshBasicMaterial({
                 color: 0x0284c7,
                 transparent: true,
@@ -265,9 +267,9 @@
                 blending: THREE.AdditiveBlending,
                 side: THREE.DoubleSide
             });
-            const coreMesh = new THREE.Mesh(geometry, coreMaterial);
-            coreMesh.scale.set(0.97, 0.97, 0.97);
-            this.faceGroup.add(coreMesh);
+            this.coreMesh = new THREE.Mesh(geometry, coreMaterial);
+            this.coreMesh.scale.set(0.97, 0.97, 0.97);
+            this.faceGroup.add(this.coreMesh);
 
             // 3. Glowing Matrix Point Grid
             const matrixPointsMaterial = new THREE.PointsMaterial({
@@ -277,8 +279,8 @@
                 opacity: 0.60,
                 blending: THREE.AdditiveBlending
             });
-            const matrixPoints = new THREE.Points(geometry, matrixPointsMaterial);
-            this.faceGroup.add(matrixPoints);
+            this.matrixPoints = new THREE.Points(geometry, matrixPointsMaterial);
+            this.faceGroup.add(this.matrixPoints);
         }
 
         /**
@@ -309,9 +311,9 @@
                 }
                 const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
                 const eyeLine = new THREE.Line(ringGeo, eyeLineMat);
+                this.contourLines.push(eyeLine);
                 this.faceGroup.add(eyeLine);
 
-                // Pupil / Iris Focal Point
                 const irisGeo = new THREE.BufferGeometry().setFromPoints([
                     new THREE.Vector3(eye.x, eye.y, eye.z + 0.018)
                 ]);
@@ -323,10 +325,10 @@
                     blending: THREE.AdditiveBlending
                 });
                 const irisPoint = new THREE.Points(irisGeo, irisMat);
+                this.contourLines.push(irisPoint);
                 this.faceGroup.add(irisPoint);
             });
 
-            // Ear Auricle Cartilage Outlines
             const earLineMat = new THREE.LineBasicMaterial({
                 color: 0x00f0ff,
                 transparent: true,
@@ -347,12 +349,13 @@
                 }
                 const earGeo = new THREE.BufferGeometry().setFromPoints(earPoints);
                 const earLine = new THREE.Line(earGeo, earLineMat);
+                this.contourLines.push(earLine);
                 this.faceGroup.add(earLine);
             });
         }
 
         /**
-         * 68 Biometric Facial Landmark Points Mapped to Anatomical Proportions
+         * 68 Biometric Facial Landmark Points
          */
         buildLandmarkPoints() {
             this.landmarkCoords = [
@@ -432,29 +435,20 @@
                 if (closed && points.length > 0) points.push(points[0].clone());
                 const geo = new THREE.BufferGeometry().setFromPoints(points);
                 const line = new THREE.Line(geo, contourMat);
+                this.contourLines.push(line);
                 this.faceGroup.add(line);
             };
 
-            // 1. Jawline Contour (0-16)
             addLineLoop([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-
-            // 2. Eyebrow Arcs (17-21, 22-26)
             addLineLoop([17, 18, 19, 20, 21]);
             addLineLoop([22, 23, 24, 25, 26]);
-
-            // 3. Nose Bridge & Nostril Base (27-30, 31-35)
             addLineLoop([27, 28, 29, 30]);
             addLineLoop([31, 32, 33, 34, 35, 30]);
-
-            // 4. Closed Eye Loops (36-41, 42-47)
             addLineLoop([36, 37, 38, 39, 40, 41], true);
             addLineLoop([42, 43, 44, 45, 46, 47], true);
-
-            // 5. Outer & Inner Lip Loops (48-59, 60-67)
             addLineLoop([48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59], true);
             addLineLoop([60, 61, 62, 63, 64, 65, 66, 67], true);
 
-            // 6. Forensic Triangulation Connections (Nose to Eyes, Brows to Forehead)
             const fineMat = new THREE.LineBasicMaterial({
                 color: 0x06b6d4,
                 transparent: true,
@@ -475,12 +469,12 @@
             });
             const triGeo = new THREE.BufferGeometry().setFromPoints(triPoints);
             const triLines = new THREE.LineSegments(triGeo, fineMat);
+            this.contourLines.push(triLines);
             this.faceGroup.add(triLines);
         }
 
         /**
-         * 3D Holographic Cyber Targeting Framing Brackets & Crosshair Notches
-         * (Matches the cyan HUD reticle frame surrounding the head in Image 2)
+         * 3D Holographic Cyber Targeting Framing Brackets & Crosshairs
          */
         buildHolographicHUDFrame() {
             const frameMat = new THREE.LineBasicMaterial({
@@ -491,35 +485,27 @@
             });
             this.contourMaterials.push(frameMat);
 
-            // Outer Reticle Dimensions surrounding the head
             const minX = -1.35, maxX = 1.35;
             const minY = -1.25, maxY = 1.35;
             const z = 0.1;
             const bracketLen = 0.35;
 
             const bracketPoints = [];
-
-            // Top-Left Corner Bracket
             bracketPoints.push(new THREE.Vector3(minX, maxY - bracketLen, z), new THREE.Vector3(minX, maxY, z));
             bracketPoints.push(new THREE.Vector3(minX, maxY, z), new THREE.Vector3(minX + bracketLen, maxY, z));
 
-            // Top-Right Corner Bracket
             bracketPoints.push(new THREE.Vector3(maxX - bracketLen, maxY, z), new THREE.Vector3(maxX, maxY, z));
             bracketPoints.push(new THREE.Vector3(maxX, maxY, z), new THREE.Vector3(maxX, maxY - bracketLen, z));
 
-            // Bottom-Left Corner Bracket
             bracketPoints.push(new THREE.Vector3(minX, minY + bracketLen, z), new THREE.Vector3(minX, minY, z));
             bracketPoints.push(new THREE.Vector3(minX, minY, z), new THREE.Vector3(minX + bracketLen, minY, z));
 
-            // Bottom-Right Corner Bracket
             bracketPoints.push(new THREE.Vector3(maxX - bracketLen, minY, z), new THREE.Vector3(maxX, minY, z));
             bracketPoints.push(new THREE.Vector3(maxX, minY, z), new THREE.Vector3(maxX, minY + bracketLen, z));
 
-            // Lateral Tick Notches (Left & Right)
             bracketPoints.push(new THREE.Vector3(minX - 0.08, 0.05, z), new THREE.Vector3(minX + 0.08, 0.05, z));
             bracketPoints.push(new THREE.Vector3(maxX - 0.08, 0.05, z), new THREE.Vector3(maxX + 0.08, 0.05, z));
 
-            // Top & Bottom Crosshair Ticks
             bracketPoints.push(new THREE.Vector3(0, maxY - 0.08, z), new THREE.Vector3(0, maxY + 0.08, z));
             bracketPoints.push(new THREE.Vector3(0, minY - 0.08, z), new THREE.Vector3(0, minY + 0.08, z));
 
@@ -527,7 +513,6 @@
             const brackets = new THREE.LineSegments(bracketGeo, frameMat);
             this.hudGroup.add(brackets);
 
-            // Subtle Outer Framing Border
             const borderMat = new THREE.LineBasicMaterial({
                 color: 0x00f0ff,
                 transparent: true,
@@ -549,7 +534,6 @@
          * Upward Holographic Projection Emitter Light Cone
          */
         buildProjectionEmitterCone() {
-            // Inverted cone radiating upward from circular platform to chin
             const coneGeo = new THREE.CylinderGeometry(0.85, 0.65, 0.70, 36, 1, true);
             this.emitterConeMat = new THREE.MeshBasicMaterial({
                 color: 0x00f0ff,
@@ -581,7 +565,6 @@
             this.laserMesh.rotation.x = Math.PI / 2;
             this.laserMesh.position.set(0, 0, 0);
 
-            // Planar Laser Halo
             const haloGeo = new THREE.PlaneGeometry(2.6, 0.28);
             this.haloMaterial = new THREE.MeshBasicMaterial({
                 color: 0x00f0ff,
@@ -619,7 +602,6 @@
                 this.platformGroup.add(ring);
             });
 
-            // Glowing ground emission disk directly under neck pedestal
             const groundDiskGeo = new THREE.CircleGeometry(0.75, 48);
             const groundDiskMat = new THREE.MeshBasicMaterial({
                 color: 0x00f0ff,
@@ -633,7 +615,6 @@
             groundDisk.position.y = -1.35;
             this.platformGroup.add(groundDisk);
 
-            // Radial tick marks
             const tickCount = 28;
             const tickGeo = new THREE.BufferGeometry();
             const tickPos = [];
@@ -689,11 +670,12 @@
         }
 
         /**
-         * Mouse Tracking & Interactive Drag Orbiting
+         * User Interactions & Event Handlers
          */
         bindEvents() {
             const el = this.container;
 
+            // 1. Mouse Drag & Movement Orbit
             el.addEventListener("mousemove", (e) => {
                 const rect = el.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -722,7 +704,15 @@
                 this.isDragging = false;
             });
 
-            // Touch events for mobile
+            // 2. Mouse Wheel Smooth Camera Zoom
+            el.addEventListener("wheel", (e) => {
+                e.preventDefault();
+                const zoomDelta = e.deltaY * 0.003;
+                this.camera.position.z += zoomDelta;
+                this.camera.position.z = Math.max(2.6, Math.min(6.2, this.camera.position.z));
+            }, { passive: false });
+
+            // 3. Touch events for Mobile Devices
             el.addEventListener("touchstart", (e) => {
                 if (e.touches.length === 1) {
                     this.isDragging = true;
@@ -746,15 +736,10 @@
                 this.isDragging = false;
             });
 
-            // Reset View Button
-            const resetBtn = document.getElementById("resetScannerBtn");
-            if (resetBtn) {
-                resetBtn.addEventListener("click", () => {
-                    this.resetView();
-                });
-            }
+            // 4. Connect Interactive Cyber Controls
+            this.bindControlButtons();
 
-            // Window Resize
+            // 5. Window Resize Handler
             window.addEventListener("resize", () => {
                 if (!this.container || !this.renderer || !this.camera) return;
                 const w = this.container.clientWidth;
@@ -765,13 +750,153 @@
             });
         }
 
+        /**
+         * Connects all interactive buttons in the dashboard UI
+         */
+        bindControlButtons() {
+            // Reset View
+            ["resetFaceViewBtn", "resetScannerBtn"].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.addEventListener("click", () => this.resetView());
+            });
+
+            // Rotate Left & Right
+            const btnRotLeft = document.getElementById("btnScannerRotLeft");
+            if (btnRotLeft) btnRotLeft.addEventListener("click", () => this.rotateLeft());
+
+            const btnRotRight = document.getElementById("btnScannerRotRight");
+            if (btnRotRight) btnRotRight.addEventListener("click", () => this.rotateRight());
+
+            // Zoom In & Out
+            const btnZoomIn = document.getElementById("btnScannerZoomIn");
+            if (btnZoomIn) btnZoomIn.addEventListener("click", () => this.zoomIn());
+
+            const btnZoomOut = document.getElementById("btnScannerZoomOut");
+            if (btnZoomOut) btnZoomOut.addEventListener("click", () => this.zoomOut());
+
+            // Pause / Resume Auto Rotation
+            const btnAutoRot = document.getElementById("btnScannerToggleRot");
+            if (btnAutoRot) btnAutoRot.addEventListener("click", () => this.toggleAutoRotation());
+
+            // Toggle Wireframe
+            const btnWireframe = document.getElementById("btnScannerToggleWireframe");
+            if (btnWireframe) btnWireframe.addEventListener("click", () => this.toggleWireframe());
+
+            // Toggle Landmarks
+            const btnLandmarks = document.getElementById("btnScannerToggleLandmarks");
+            if (btnLandmarks) btnLandmarks.addEventListener("click", () => this.toggleLandmarks());
+
+            // Start / Stop Scan
+            const btnScanToggle = document.getElementById("btnScannerToggleScan");
+            if (btnScanToggle) btnScanToggle.addEventListener("click", () => this.toggleScan());
+
+            // Fullscreen View
+            const btnFullscreen = document.getElementById("btnScannerFullscreen");
+            if (btnFullscreen) btnFullscreen.addEventListener("click", () => this.toggleFullscreen());
+        }
+
+        // ==============================================================
+        // INTERACTIVE CONTROL ACTIONS
+        // ==============================================================
+
+        rotateLeft(angle = 0.35) {
+            if (window.gsap) {
+                gsap.to(this.faceGroup.rotation, { y: this.faceGroup.rotation.y - angle, duration: 0.45, ease: "power2.out" });
+            } else {
+                this.faceGroup.rotation.y -= angle;
+            }
+        }
+
+        rotateRight(angle = 0.35) {
+            if (window.gsap) {
+                gsap.to(this.faceGroup.rotation, { y: this.faceGroup.rotation.y + angle, duration: 0.45, ease: "power2.out" });
+            } else {
+                this.faceGroup.rotation.y += angle;
+            }
+        }
+
+        zoomIn(step = 0.45) {
+            const targetZ = Math.max(2.6, this.camera.position.z - step);
+            if (window.gsap) {
+                gsap.to(this.camera.position, { z: targetZ, duration: 0.45, ease: "power2.out" });
+            } else {
+                this.camera.position.z = targetZ;
+            }
+        }
+
+        zoomOut(step = 0.45) {
+            const targetZ = Math.min(6.2, this.camera.position.z + step);
+            if (window.gsap) {
+                gsap.to(this.camera.position, { z: targetZ, duration: 0.45, ease: "power2.out" });
+            } else {
+                this.camera.position.z = targetZ;
+            }
+        }
+
+        toggleAutoRotation() {
+            this.autoRotate = !this.autoRotate;
+            const icon = document.getElementById("autoRotIcon");
+            if (icon) {
+                icon.className = this.autoRotate ? "bi bi-pause-fill" : "bi bi-play-fill";
+            }
+        }
+
+        toggleWireframe() {
+            this.wireframeVisible = !this.wireframeVisible;
+            if (this.faceMesh) {
+                this.faceMesh.visible = this.wireframeVisible;
+            }
+            const btn = document.getElementById("btnScannerToggleWireframe");
+            if (btn) {
+                btn.classList.toggle("active", this.wireframeVisible);
+            }
+        }
+
+        toggleLandmarks() {
+            this.landmarksVisible = !this.landmarksVisible;
+            if (this.landmarks) {
+                this.landmarks.visible = this.landmarksVisible;
+            }
+            this.contourLines.forEach(line => {
+                line.visible = this.landmarksVisible;
+            });
+            const btn = document.getElementById("btnScannerToggleLandmarks");
+            if (btn) {
+                btn.classList.toggle("active", this.landmarksVisible);
+            }
+        }
+
+        toggleScan() {
+            if (this.isScanning) {
+                this.reset();
+                const icon = document.getElementById("scanToggleIcon");
+                if (icon) icon.className = "bi bi-play-circle me-1";
+            } else {
+                this.startScan();
+                const icon = document.getElementById("scanToggleIcon");
+                if (icon) icon.className = "bi bi-stop-circle me-1 text-danger";
+            }
+        }
+
+        toggleFullscreen() {
+            const card = this.container.closest(".scanner-viewport-card") || this.container;
+            if (!document.fullscreenElement) {
+                if (card.requestFullscreen) card.requestFullscreen();
+                else if (card.webkitRequestFullscreen) card.webkitRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
         resetView() {
             if (window.gsap) {
                 gsap.to(this.faceGroup.rotation, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power2.out" });
                 gsap.to(this.faceGroup.position, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power2.out" });
+                gsap.to(this.camera.position, { z: 4.3, duration: 0.8, ease: "power2.out" });
             } else {
                 this.faceGroup.rotation.set(0, 0, 0);
                 this.faceGroup.position.set(0, 0, 0);
+                this.camera.position.z = 4.3;
             }
             this.mouse.targetX = 0;
             this.mouse.targetY = 0;
@@ -783,15 +908,15 @@
         startScan() {
             this.isScanning = true;
             this.scanState = "scanning";
-            this.laserSpeed = 2.8;
+            this.laserSpeed = 3.0;
 
             this.laserMaterial.color.setHex(0x00f0ff);
             this.laserHalo.material.color.setHex(0x00f0ff);
-            this.meshMaterial.opacity = 0.75;
-            this.landmarkMaterial.size = 0.085;
+            this.meshMaterial.opacity = 0.78;
+            this.landmarkMaterial.size = 0.088;
 
             if (window.gsap) {
-                gsap.to(this.meshMaterial, { opacity: 0.88, duration: 0.35, yoyo: true, repeat: -1 });
+                gsap.to(this.meshMaterial, { opacity: 0.90, duration: 0.32, yoyo: true, repeat: -1 });
             }
         }
 
@@ -815,7 +940,7 @@
 
             if (window.gsap) {
                 gsap.killTweensOf(this.meshMaterial);
-                gsap.fromTo(this.faceGroup.scale, { x: 1.08, y: 1.08, z: 1.08 }, { x: 1, y: 1, z: 1, duration: 0.6, ease: "elastic.out(1, 0.4)" });
+                gsap.fromTo(this.faceGroup.scale, { x: 1.09, y: 1.09, z: 1.09 }, { x: 1, y: 1, z: 1, duration: 0.6, ease: "elastic.out(1, 0.4)" });
             }
         }
 
@@ -840,15 +965,15 @@
         }
 
         /**
-         * Main Render & Animation Loop
+         * Main Render & Animation Loop (Optimized for 60 FPS)
          */
         animate() {
             requestAnimationFrame(this.animate);
             const delta = this.clock.getDelta();
             const elapsed = this.clock.getElapsedTime();
 
-            // 1. Idle breathing & mouse interpolation
-            if (!this.isDragging) {
+            // 1. Idle breathing & mouse interpolation (when autoRotate is enabled)
+            if (!this.isDragging && this.autoRotate) {
                 this.mouse.x += (this.mouse.targetX - this.mouse.x) * 0.05;
                 this.mouse.y += (this.mouse.targetY - this.mouse.y) * 0.05;
 
@@ -857,8 +982,8 @@
                 this.faceGroup.rotation.x = -this.mouse.y + breathing;
             }
 
-            // 2. Subtle Landmark Pulsing & Wireframe Illumination Shimmer
-            if (this.landmarkMaterial) {
+            // 2. Subtle Landmark Pulsing & Volumetric Shimmer
+            if (this.landmarkMaterial && this.landmarksVisible) {
                 const pulse = 0.055 + Math.sin(elapsed * 3.0) * 0.012;
                 this.landmarkMaterial.size = pulse;
             }

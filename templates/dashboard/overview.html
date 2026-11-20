@@ -116,9 +116,20 @@
                             <span class="hud-tag"><i class="bi bi-camera me-1"></i>3D BIOMETRIC MESH</span>
                             <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 font-mono small">68 LANDMARKS</span>
                         </div>
-                        <div class="text-end font-mono" style="font-size: 0.72rem; color: var(--neon-cyan);">
-                            <div>ROT: <span id="faceRotX">0.00</span>&deg;</div>
-                            <div>FPS: <span id="faceFps">60.0</span></div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-0" id="btnScannerToggleScan" title="Start/Stop Laser Scan" style="font-size: 0.72rem; pointer-events: auto;">
+                                <i id="scanToggleIcon" class="bi bi-play-circle me-1"></i>SCAN
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-0" id="btnScannerToggleRot" title="Pause/Resume Auto Rotation" style="font-size: 0.72rem; pointer-events: auto;">
+                                <i id="autoRotIcon" class="bi bi-pause-fill"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-0" id="btnScannerFullscreen" title="Toggle Fullscreen" style="font-size: 0.72rem; pointer-events: auto;">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                            <div class="text-end font-mono ms-1" style="font-size: 0.72rem; color: var(--neon-cyan);">
+                                <div>ROT: <span id="faceRotX">0.00</span>&deg;</div>
+                                <div>FPS: <span id="faceFps">60.0</span></div>
+                            </div>
                         </div>
                     </div>
 
@@ -131,9 +142,27 @@
                             <div>OPTICAL GRAIN: <span class="telemetry-val">PRNU ACTIVE</span></div>
                             <div>SPECTRUM: <span class="telemetry-val">2D-FFT RADIAL DECAY</span></div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-3 py-1" id="resetFaceViewBtn" style="font-size: 0.75rem; pointer-events: auto;">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>RESET VIEW
+                        <div class="d-flex align-items-center gap-1 flex-wrap mt-2" style="pointer-events: auto;">
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerRotLeft" title="Rotate Left" style="font-size: 0.72rem;">
+                                <i class="bi bi-arrow-left me-1"></i>ROT L
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerRotRight" title="Rotate Right" style="font-size: 0.72rem;">
+                                ROT R<i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerZoomIn" title="Zoom In" style="font-size: 0.72rem;">
+                                <i class="bi bi-zoom-in"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="btnScannerZoomOut" title="Zoom Out" style="font-size: 0.72rem;">
+                                <i class="bi bi-zoom-out"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1 active" id="btnScannerToggleWireframe" title="Toggle Wireframe Mesh" style="font-size: 0.72rem;">
+                                <i class="bi bi-grid-3x3 me-1"></i>MESH
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1 active" id="btnScannerToggleLandmarks" title="Toggle 68 Facial Landmarks" style="font-size: 0.72rem;">
+                                <i class="bi bi-dot"></i>POINTS
+                            </button>
+                            <button class="btn btn-sm btn-outline-info font-mono rounded-pill px-2 py-1" id="resetFaceViewBtn" title="Reset View" style="font-size: 0.72rem;">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>RESET
                             </button>
                         </div>
                     </div>

@@ -522,6 +522,29 @@ body {
     opacity: 0.75;
 }
 
+/* Scanner Interactive HUD Control Buttons */
+.scanner-hud .btn-outline-info {
+    color: var(--neon-cyan);
+    border-color: rgba(0, 240, 255, 0.35);
+    background: rgba(4, 7, 17, 0.65);
+    backdrop-filter: blur(6px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scanner-hud .btn-outline-info:hover {
+    color: #fff;
+    background: rgba(0, 240, 255, 0.25);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+    transform: translateY(-1px);
+}
+
+.scanner-hud .btn-outline-info.active {
+    background: rgba(0, 240, 255, 0.28);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+
 #faceScanner3DContainer {
     width: 100%;
     height: 100%;
