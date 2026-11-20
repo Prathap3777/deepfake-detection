@@ -170,98 +170,117 @@
             </div>
         </div>
 
-        <!-- Right: AI Face Scanner Interactive Analysis Panel -->
+        <!-- Right: AI Face Scanner Interactive Analysis Panel (Matching Image 2) -->
         <div class="col-lg-6">
-            <div class="cyber-card scanner-analysis-card corner-bracket">
-                <div class="d-flex align-items-center justify-content-between pb-3 border-bottom" style="border-color: var(--border-cyber) !important;">
-                    <div>
-                        <h2 class="h6 fw-bold mb-0 text-white">
-                            <i class="bi bi-fingerprint me-2" style="color: var(--neon-cyan);"></i>AI Face Scanner Analysis Panel
-                        </h2>
-                        <small class="text-muted">Live image feed, dual Softmax neural inference, and real-time Grad-CAM</small>
+            <div class="cyber-card scanner-analysis-card corner-bracket h-100 d-flex flex-column justify-content-between p-4">
+                <div>
+                    <!-- Header -->
+                    <div class="d-flex align-items-center justify-content-between pb-3 border-bottom" style="border-color: var(--border-cyber) !important;">
+                        <div>
+                            <h2 class="h5 fw-bold mb-1 text-white">
+                                <i class="bi bi-cpu me-2" style="color: var(--neon-cyan);"></i>AI Face Scanner
+                            </h2>
+                            <div class="small font-mono text-info" id="aiScannerStatusSubtitle">Real-time Analysis in Progress...</div>
+                        </div>
+                        <span class="badge rounded-pill px-3 py-1 font-mono" id="engineStatusBadge" style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
+                            ENGINE READY
+                        </span>
                     </div>
-                    <span class="badge rounded-pill px-3 py-1 font-mono" style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
-                        ENGINE READY
-                    </span>
+
+                    <!-- Glowing Progress Bar (Matching Image 2) -->
+                    <div class="my-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted font-mono" style="font-size: 0.72rem;">NEURAL PIPELINE PROGRESS</span>
+                            <span class="small font-mono fw-bold text-info" id="aiScanProgressPercent">0%</span>
+                        </div>
+                        <div class="scanner-progress-track">
+                            <div class="scanner-progress-bar" id="aiScanProgressBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3 Glassmorphic Telemetry Cards (Matching Image 2) -->
+                    <div class="telemetry-stack mb-3">
+                        <!-- Card 1: Faces Detected -->
+                        <div class="telemetry-box">
+                            <div class="telemetry-icon-box icon-purple">
+                                <i class="bi bi-person-bounding-box"></i>
+                            </div>
+                            <div class="telemetry-info">
+                                <div class="telemetry-label">Faces Detected</div>
+                                <div class="telemetry-value text-white" id="panelFacesDetected">--</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Prediction -->
+                        <div class="telemetry-box">
+                            <div class="telemetry-icon-box icon-green" id="panelPredictionIconBox">
+                                <i class="bi bi-shield-check" id="panelPredictionIcon"></i>
+                            </div>
+                            <div class="telemetry-info">
+                                <div class="telemetry-label">Prediction</div>
+                                <div class="telemetry-value text-muted" id="panelPrediction">Awaiting Input</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Confidence -->
+                        <div class="telemetry-box">
+                            <div class="telemetry-icon-box icon-blue">
+                                <i class="bi bi-shield-shaded"></i>
+                            </div>
+                            <div class="telemetry-info">
+                                <div class="telemetry-label">Confidence</div>
+                                <div class="telemetry-value text-info font-mono" id="panelConfidence">--%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dropzone Area -->
+                    <div class="scanner-dropzone mb-3" id="dashDropzone" onclick="document.getElementById('dashFileInput').click();">
+                        <input type="file" id="dashFileInput" accept="image/*" class="d-none">
+                        <div id="dropzoneDefaultView">
+                            <i class="bi bi-cloud-arrow-up dropzone-icon d-block"></i>
+                            <h3 class="h6 fw-bold text-white mb-1">Click to Upload or Drag &amp; Drop Face Image</h3>
+                            <p class="small text-muted mb-0">Instant 3D Hologram Scan, ResNet-18 Dual Inference &amp; Grad-CAM</p>
+                        </div>
+                        <div id="dropzonePreviewView" class="d-none">
+                            <img id="dashPreviewImg" src="" alt="Scan Target" class="rounded mb-2 shadow-sm" style="max-height: 90px; object-fit: contain; border: 1px solid var(--neon-cyan);">
+                            <div class="small fw-bold text-info font-mono" id="dashPreviewFilename">Target Selected</div>
+                        </div>
+                    </div>
+
+                    <!-- Live Scan Result Overlay (Revealed upon scan completion) -->
+                    <div id="dashLiveResultBox" class="p-3 rounded mb-3 d-none" style="background: rgba(5, 10, 24, 0.92); border: 1px solid var(--border-cyber); box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small text-muted font-mono"><i class="bi bi-fingerprint me-1 text-info"></i>LIVE FORENSIC DOSSIER:</span>
+                            <span id="dashLiveVerdictBadge" class="badge-status-real font-mono">REAL</span>
+                        </div>
+                        <div class="row g-2 mb-2" id="dashThumbnailsRow">
+                            <div class="col-6 text-center">
+                                <div class="small text-muted font-mono mb-1" style="font-size: 0.68rem;">DETECTED FACE</div>
+                                <img id="dashFaceCropThumb" src="" alt="Face Crop" class="rounded w-100" style="max-height: 85px; object-fit: contain; background: #000; border: 1px solid var(--border-subtle);">
+                            </div>
+                            <div class="col-6 text-center">
+                                <div class="small text-muted font-mono mb-1" style="font-size: 0.68rem;">GRAD-CAM XAI</div>
+                                <img id="dashGradcamThumb" src="" alt="Grad-CAM" class="rounded w-100" style="max-height: 85px; object-fit: contain; background: #000; border: 1px solid var(--border-subtle);">
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between small text-muted font-mono" style="font-size: 0.72rem;">
+                            <span>BBox: <span id="dashLiveBbox" class="text-info">[X: 0, Y: 0, W: 0, H: 0]</span></span>
+                            <span>Risk: <span id="dashLiveRisk" class="text-info">0.0 / 100</span></span>
+                            <a id="dashViewScanLink" href="#" class="text-info text-decoration-none fw-semibold">
+                                Full Dossier <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Dropzone / Live Analysis Target -->
-                <div class="scanner-dropzone my-2" id="dashDropzone" onclick="document.getElementById('dashFileInput').click();">
-                    <input type="file" id="dashFileInput" accept="image/*" class="d-none">
-                    <div id="dropzoneDefaultView">
-                        <i class="bi bi-cloud-arrow-up dropzone-icon d-block"></i>
-                        <h3 class="h6 fw-bold text-white mb-1">Click to Upload or Drag &amp; Drop Face Image</h3>
-                        <p class="small text-muted mb-0">Instant 3D Hologram Scan, ResNet-18 Dual Inference &amp; Grad-CAM</p>
-                    </div>
-                    <div id="dropzonePreviewView" class="d-none">
-                        <img id="dashPreviewImg" src="" alt="Scan Target" class="rounded mb-2 shadow-sm" style="max-height: 100px; object-fit: contain; border: 1px solid var(--neon-cyan);">
-                        <div class="small fw-bold text-info font-mono" id="dashPreviewFilename">Target Selected</div>
-                    </div>
-                </div>
-
-                <!-- Live Scan Result Badge Overlay (Revealed upon scan completion) -->
-                <div id="dashLiveResultBox" class="p-3 rounded mb-2 d-none" style="background: rgba(5, 10, 24, 0.92); border: 1px solid var(--border-cyber); box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="small text-muted font-mono"><i class="bi bi-shield-check me-1 text-info"></i>LIVE INFERENCE RESULT:</span>
-                        <span id="dashLiveVerdictBadge" class="badge-status-real font-mono">REAL</span>
-                    </div>
-
-                    <!-- Dual Thumbnails: Detected Face Crop & Grad-CAM Heatmap -->
-                    <div class="row g-2 mb-2" id="dashThumbnailsRow">
-                        <div class="col-6 text-center">
-                            <div class="small text-muted font-mono mb-1" style="font-size: 0.68rem;">DETECTED FACE</div>
-                            <img id="dashFaceCropThumb" src="" alt="Face Crop" class="rounded w-100" style="max-height: 85px; object-fit: contain; background: #000; border: 1px solid var(--border-subtle);">
-                        </div>
-                        <div class="col-6 text-center">
-                            <div class="small text-muted font-mono mb-1" style="font-size: 0.68rem;">GRAD-CAM XAI</div>
-                            <img id="dashGradcamThumb" src="" alt="Grad-CAM" class="rounded w-100" style="max-height: 85px; object-fit: contain; background: #000; border: 1px solid var(--border-subtle);">
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-between small mb-1">
-                        <span class="text-muted">ResNet-18 Certainty: <strong id="dashLiveConfidence" class="text-white font-mono">0.0%</strong></span>
-                        <span class="text-muted">AI Risk Index: <strong id="dashLiveRisk" class="text-info font-mono">0.0 / 100</strong></span>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-between small text-muted font-mono" style="font-size: 0.72rem;">
-                        <span>BBox: <span id="dashLiveBbox" class="text-info">[X: 0, Y: 0, W: 0, H: 0]</span></span>
-                        <a id="dashViewScanLink" href="#" class="text-info text-decoration-none fw-semibold">
-                            Full Dossier <i class="bi bi-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Analysis Pipeline Indicators -->
-                <div class="row g-2 mb-3">
-                    <div class="col-4">
-                        <div class="p-2 rounded text-center" style="background: rgba(4, 8, 20, 0.6); border: 1px solid var(--border-subtle);">
-                            <div class="text-muted" style="font-size: 0.68rem;">CNN VISION</div>
-                            <div class="fw-bold font-mono small text-info" id="dashIndicatorCnn">ResNet-18</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="p-2 rounded text-center" style="background: rgba(4, 8, 20, 0.6); border: 1px solid var(--border-subtle);">
-                            <div class="text-muted" style="font-size: 0.68rem;">FREQUENCY</div>
-                            <div class="fw-bold font-mono small text-success" id="dashIndicatorFft">2D-FFT</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="p-2 rounded text-center" style="background: rgba(4, 8, 20, 0.6); border: 1px solid var(--border-subtle);">
-                            <div class="text-muted" style="font-size: 0.68rem;">ERROR LEVEL</div>
-                            <div class="fw-bold font-mono small text-warning" id="dashIndicatorEla">ELA Heatmap</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Button & Scan Launcher -->
-                <div class="d-flex gap-2">
-                    <button type="button" id="dashScanTriggerBtn" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #0284c7 0%, #00f0ff 100%); border: none; color: #040711;">
-                        <i class="bi bi-play-circle-fill"></i>
-                        <span id="dashScanBtnText">Start Holographic AI Scan</span>
+                <!-- Action Button (Matching Image 2) -->
+                <div>
+                    <button type="button" id="dashScanTriggerBtn" class="btn btn-cyber-analyzing w-100 py-3 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                        <span id="dashScanBtnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                        <i id="dashScanBtnIcon" class="bi bi-play-circle-fill"></i>
+                        <span id="dashScanBtnText">Start AI Face Scan</span>
                     </button>
-                    <a href="{{ url_for('detect.image_page') }}" class="btn btn-outline-info rounded-pill px-3 py-2" title="Open Advanced Image Studio">
-                        <i class="bi bi-box-arrow-up-right"></i>
-                    </a>
                 </div>
             </div>
         </div>
@@ -1009,7 +1028,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 previewFilename.textContent = file.name;
                 defaultView.classList.add("d-none");
                 previewView.classList.remove("d-none");
-                if (btnText) btnText.textContent = "Scan " + file.name;
+                if (btnText) btnText.textContent = "Start AI Scan on " + file.name;
             };
             reader.readAsDataURL(file);
         }
@@ -1027,7 +1046,43 @@ document.addEventListener("DOMContentLoaded", function () {
                     window.FaceScanner3D.startScan();
                 }
                 triggerBtn.disabled = true;
-                if (btnText) btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Inference in progress...';
+
+                // Status & Progress UI Elements
+                const progressBar = document.getElementById("aiScanProgressBar");
+                const progressPercent = document.getElementById("aiScanProgressPercent");
+                const statusSubtitle = document.getElementById("aiScannerStatusSubtitle");
+                const engineBadge = document.getElementById("engineStatusBadge");
+                const spinner = document.getElementById("dashScanBtnSpinner");
+                const icon = document.getElementById("dashScanBtnIcon");
+                const pFaces = document.getElementById("panelFacesDetected");
+                const pPred = document.getElementById("panelPrediction");
+                const pIconBox = document.getElementById("panelPredictionIconBox");
+                const pIcon = document.getElementById("panelPredictionIcon");
+                const pConf = document.getElementById("panelConfidence");
+
+                if (spinner) spinner.classList.remove("d-none");
+                if (icon) icon.classList.add("d-none");
+                if (btnText) btnText.textContent = "Analyzing Neural Signals...";
+                if (statusSubtitle) statusSubtitle.textContent = "Real-time Analysis in Progress...";
+                if (engineBadge) {
+                    engineBadge.textContent = "INFERENCE ACTIVE";
+                    engineBadge.style.color = "var(--neon-cyan)";
+                    engineBadge.style.borderColor = "var(--neon-cyan)";
+                }
+
+                // Animate progress bar towards 87% (Image 2 indicator)
+                let currentProg = 0;
+                if (progressBar) progressBar.style.width = "0%";
+                if (progressPercent) progressPercent.textContent = "0%";
+
+                const progressInterval = setInterval(() => {
+                    if (currentProg < 85) {
+                        currentProg += Math.floor(Math.random() * 8) + 4;
+                        if (currentProg > 87) currentProg = 87;
+                        if (progressBar) progressBar.style.width = currentProg + "%";
+                        if (progressPercent) progressPercent.textContent = currentProg + "%";
+                    }
+                }, 100);
 
                 // 2. Transmit to Flask backend via AJAX with CSRF token
                 const formData = new FormData();
@@ -1046,8 +1101,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .then(res => res.json())
                 .then(data => {
+                    clearInterval(progressInterval);
+                    if (progressBar) progressBar.style.width = "100%";
+                    if (progressPercent) progressPercent.textContent = "100%";
+
                     triggerBtn.disabled = false;
-                    if (btnText) btnText.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Scan Another Image';
+                    if (spinner) spinner.classList.add("d-none");
+                    if (icon) {
+                        icon.className = "bi bi-arrow-repeat";
+                        icon.classList.remove("d-none");
+                    }
+                    if (btnText) btnText.textContent = "Scan Another Image";
 
                     if (data.success && data.result) {
                         const res = data.result;
@@ -1058,11 +1122,36 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.FaceScanner3D.setResult(isReal, res.confidence);
                         }
 
+                        // Update AI Face Scanner Panel Telemetry (Image 2)
+                        if (pFaces) pFaces.textContent = res.face_count || 1;
+                        if (pPred) {
+                            pPred.textContent = res.prediction;
+                            pPred.className = isReal ? "telemetry-value text-success font-mono fw-bold" : "telemetry-value text-danger font-mono fw-bold";
+                        }
+                        if (pIconBox) {
+                            pIconBox.className = isReal ? "telemetry-icon-box icon-green" : "telemetry-icon-box icon-rose";
+                        }
+                        if (pIcon) {
+                            pIcon.className = isReal ? "bi bi-shield-check" : "bi bi-shield-x";
+                        }
+                        if (pConf) pConf.textContent = res.confidence + "%";
+
+                        if (statusSubtitle) {
+                            statusSubtitle.textContent = isReal 
+                                ? "Authenticity Verified • Natural Biometric Spectrum" 
+                                : "Deepfake Manipulation Flagged • Synthetic Artifacts Detected";
+                        }
+                        if (engineBadge) {
+                            engineBadge.textContent = isReal ? "VERIFIED AUTHENTIC" : "DEEPFAKE FLAGGED";
+                            engineBadge.style.color = isReal ? "var(--neon-emerald)" : "var(--neon-rose)";
+                            engineBadge.style.borderColor = isReal ? "var(--neon-emerald)" : "var(--neon-rose)";
+                        }
+
                         // Reveal Live Result HUD with Face Crop, Grad-CAM and Bounding Box
                         if (resultBox && verdictBadge) {
                             resultBox.classList.remove("d-none");
                             verdictBadge.className = isReal ? "badge-status-real font-mono" : "badge-status-fake font-mono";
-                            verdictBadge.innerHTML = isReal ? '<i class="bi bi-shield-check"></i>REAL' : '<i class="bi bi-exclamation-triangle"></i>FAKE';
+                            verdictBadge.innerHTML = isReal ? '<i class="bi bi-shield-check me-1"></i>REAL' : '<i class="bi bi-exclamation-triangle me-1"></i>FAKE';
                             if (confVal) confVal.textContent = res.confidence + "%";
                             const riskScore = (res.risk_assessment && res.risk_assessment.risk_score) ? res.risk_assessment.risk_score : (isReal ? 12 : 88);
                             if (riskVal) riskVal.textContent = riskScore + " / 100";
@@ -1094,9 +1183,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 })
                 .catch(err => {
+                    clearInterval(progressInterval);
                     console.error("Scanning error:", err);
                     triggerBtn.disabled = false;
-                    if (btnText) btnText.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i>Start Holographic AI Scan';
+                    if (spinner) spinner.classList.add("d-none");
+                    if (icon) {
+                        icon.className = "bi bi-play-circle-fill";
+                        icon.classList.remove("d-none");
+                    }
+                    if (btnText) btnText.textContent = "Start AI Face Scan";
                     if (window.FaceScanner3D) window.FaceScanner3D.reset();
                 });
             });
