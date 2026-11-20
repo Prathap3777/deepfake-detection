@@ -3,14 +3,13 @@
  * Module: static/js/face_scanner_3d.js
  * Powered by Three.js (r128)
  * 
- * Phase 2 Upgrade:
- * - High-density parametric human facial anatomy (64x64 resolution, 8000+ faces)
- * - Sculpted forehead, brow ridge, orbital cavities, eyeballs, nose bridge, nostrils,
- *   philtrum, Cupid's bow, upper & lower lips, chin, jawline, ears, and neck column
- * - Ocular contour rings and bilateral ear auricles
- * - 68 Anatomical biometric landmark points mapped with sub-millimeter precision
- * - Volumetric inner luminescent holographic core + sparkling nodal matrix points
- * - Preserves laser scan sweep, rotating cyber platform, FPS telemetry, and Flask hooks
+ * Phase 3 Upgrade:
+ * - Fine triangular biometric landmark contour networks (Jawline, Brows, Nose, Eyes, Lips)
+ * - 3D Holographic Cyber Targeting Framing Brackets & Crosshair Notches matching Image 2
+ * - Upward Holographic Projection Emitter Light Cone with Additive Volumetric Luminescence
+ * - Pulsating landmark nodes, glowing connection lines, and animated wireframe illumination
+ * - Multi-ring rotating scanning pedestal with ground emission flares
+ * - Preserves interactive mouse/touch controls, FPS/ROT telemetry, and Flask detection hooks
  */
 
 (function () {
@@ -28,6 +27,7 @@
 
             // Mesh groups
             this.faceGroup = new THREE.Group();
+            this.hudGroup = new THREE.Group();
             this.platformGroup = new THREE.Group();
             this.particles = null;
 
@@ -43,6 +43,9 @@
             this.laserDirection = 1;
             this.laserSpeed = 1.2;
 
+            // Dynamic materials for pulsation
+            this.contourMaterials = [];
+
             // Telemetry elements
             this.rotEl = document.getElementById("faceRotX");
             this.fpsEl = document.getElementById("faceFps");
@@ -56,15 +59,15 @@
             const width = this.container.clientWidth || 500;
             const height = this.container.clientHeight || 440;
 
-            // 1. Scene
+            // 1. Scene with deep cyber fog
             this.scene = new THREE.Scene();
-            this.scene.fog = new THREE.FogExp2(0x040711, 0.16);
+            this.scene.fog = new THREE.FogExp2(0x040711, 0.15);
 
             // 2. Camera
             this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
             this.camera.position.set(0, 0, 4.3);
 
-            // 3. Renderer
+            // 3. High-Performance WebGL Renderer
             this.renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true,
@@ -73,39 +76,43 @@
             this.renderer.setSize(width, height);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            this.renderer.toneMappingExposure = 1.2;
+            this.renderer.toneMappingExposure = 1.25;
             this.container.appendChild(this.renderer.domElement);
 
-            // 4. Lights
-            const ambientLight = new THREE.AmbientLight(0x00f0ff, 0.9);
+            // 4. Cyber Illumination Lights
+            const ambientLight = new THREE.AmbientLight(0x00f0ff, 0.95);
             this.scene.add(ambientLight);
 
-            const pointLight = new THREE.PointLight(0x00f0ff, 3.0, 12);
-            pointLight.position.set(0, 1.8, 3.5);
-            this.scene.add(pointLight);
+            const frontalPointLight = new THREE.PointLight(0x00f0ff, 3.2, 12);
+            frontalPointLight.position.set(0, 1.8, 3.5);
+            this.scene.add(frontalPointLight);
 
-            const rimLightCyan = new THREE.PointLight(0x00f0ff, 2.0, 8);
-            rimLightCyan.position.set(2.5, 0.5, 1.5);
-            this.scene.add(rimLightCyan);
+            const rightRimLight = new THREE.PointLight(0x06b6d4, 2.4, 8);
+            rightRimLight.position.set(2.8, 0.5, 1.8);
+            this.scene.add(rightRimLight);
 
-            const rimLightPurple = new THREE.PointLight(0xa855f7, 2.2, 8);
-            rimLightPurple.position.set(-2.5, -0.5, 1.5);
-            this.scene.add(rimLightPurple);
+            const leftRimLight = new THREE.PointLight(0xa855f7, 2.5, 8);
+            leftRimLight.position.set(-2.8, -0.5, 1.8);
+            this.scene.add(leftRimLight);
 
             // 5. Build 3D Entities
             this.buildFacialMesh();
             this.buildEyeAndEarDetails();
             this.buildLandmarkPoints();
+            this.buildLandmarkContours();
+            this.buildHolographicHUDFrame();
             this.buildLaserPlane();
             this.buildHolographicPlatform();
+            this.buildProjectionEmitterCone();
             this.buildParticleAura();
 
             this.scene.add(this.faceGroup);
+            this.scene.add(this.hudGroup);
 
-            // 6. Bind Events
+            // 6. Bind User Interaction Events
             this.bindEvents();
 
-            // 7. Start Render Loop
+            // 7. Start Main Render & Animation Loop
             this.animate = this.animate.bind(this);
             requestAnimationFrame(this.animate);
         }
@@ -125,18 +132,17 @@
                 let y = pos.getY(i);
                 let z = pos.getZ(i);
 
-                // --- 1. Vertical Proportions: Head + Neck ---
+                // --- Vertical Proportions: Head + Neck ---
                 if (y > -0.2) {
-                    y = 0.2 + (y - (-0.2)) * 0.95; // Cranium & upper facial dome
+                    y = 0.2 + (y - (-0.2)) * 0.95;
                 } else {
-                    y = 0.2 + (y - (-0.2)) * 1.45; // Lower jaw & descending cervical neck
+                    y = 0.2 + (y - (-0.2)) * 1.45;
                 }
 
-                // Cranial lateral width ratio
                 x *= 0.88;
                 z *= 1.05;
 
-                // --- 2. Frontal Facial Features Sculpting (z > -0.2) ---
+                // --- Frontal Facial Features Sculpting (z > -0.2) ---
                 if (z > -0.2) {
                     // Forehead curvature & Supraorbital brow ridge
                     if (y > 0.28 && y < 0.62) {
@@ -150,7 +156,6 @@
                         if (dEye < 0.23) {
                             const indent = Math.cos((dEye / 0.23) * (Math.PI / 2));
                             z -= indent * 0.23;
-                            // Eyeball bulge within orbital margin
                             if (dEye < 0.12) {
                                 const bulge = Math.cos((dEye / 0.12) * (Math.PI / 2));
                                 z += bulge * 0.13;
@@ -163,11 +168,9 @@
                         const bridgeWidth = 0.08 + (0.34 - y) * 0.25;
                         if (Math.abs(x) < bridgeWidth) {
                             const hFactor = 1.0 - Math.abs(x) / bridgeWidth;
-                            // Nose tip apex at y ~ -0.06
                             const tipMult = 1.0 + 0.95 * Math.exp(-Math.pow(y - (-0.06), 2) / 0.012);
                             z += hFactor * 0.34 * tipMult;
                         }
-                        // Nostril flares
                         for (let nSide of [-0.14, 0.14]) {
                             const dNostril = Math.hypot(x - nSide, y - (-0.10));
                             if (dNostril < 0.10) {
@@ -189,13 +192,11 @@
                         const lipW = 0.26;
                         if (Math.abs(x) < lipW) {
                             const lipEnv = (1.0 - Math.pow(Math.abs(x) / lipW, 2));
-                            // Upper lip with Cupid's bow dip
                             if (y > -0.30) {
                                 const cupid = 1.0 - 0.35 * Math.exp(-Math.pow(x, 2) / 0.0035);
                                 const uProf = Math.sin(Math.max(0.0, (y - (-0.30)) / 0.10) * Math.PI);
                                 z += lipEnv * uProf * 0.17 * cupid;
                             } else {
-                                // Lower lip fullness
                                 const lProf = Math.sin(Math.max(0.0, (y - (-0.45)) / 0.15) * Math.PI);
                                 z += lipEnv * lProf * 0.20;
                             }
@@ -209,14 +210,14 @@
                     }
                 }
 
-                // Mandibular angle & jawline tapering towards chin
+                // Mandibular angle & jawline tapering
                 if (y < -0.15 && y > -0.76) {
                     const t = (y - (-0.15)) / (-0.61);
                     x *= (1.0 - t * 0.36);
                     if (z > 0) z *= (1.0 - t * 0.14);
                 }
 
-                // --- 3. Anatomical Ear Bilateral Protrusions ---
+                // Anatomical Ear Bilateral Protrusions
                 if (y > -0.16 && y < 0.34 && Math.abs(x) > 0.60) {
                     const earY = (y - 0.09) / 0.25;
                     const earShape = Math.max(0, 1 - Math.pow(earY, 2));
@@ -227,15 +228,15 @@
                     }
                 }
 
-                // --- 4. Descending Cervical Neck Column ---
+                // Descending Cervical Neck Column
                 if (y <= -0.70) {
                     const neckT = Math.min(1.0, (y - (-0.70)) / (-0.65));
-                    const neckRad = 0.44 + neckT * 0.24; // Flaring into circular base
+                    const neckRad = 0.44 + neckT * 0.24;
                     const radXZ = Math.hypot(x, z);
                     if (radXZ > 0.001) {
                         x = (x / radXZ) * neckRad;
                         z = (z / radXZ) * neckRad * 0.94;
-                        z -= neckT * 0.12; // Anatomical cervical column backward incline
+                        z -= neckT * 0.12;
                     }
                 }
 
@@ -244,23 +245,23 @@
 
             geometry.computeVertexNormals();
 
-            // 1. Primary Holographic Cyan Wireframe Material
+            // 1. Primary Holographic Cyan Wireframe
             this.meshMaterial = new THREE.MeshBasicMaterial({
                 color: 0x00f0ff,
                 wireframe: true,
                 transparent: true,
-                opacity: 0.42,
+                opacity: 0.45,
                 blending: THREE.AdditiveBlending
             });
 
             this.faceMesh = new THREE.Mesh(geometry, this.meshMaterial);
             this.faceGroup.add(this.faceMesh);
 
-            // 2. Volumetric Luminescent Inner Core (Gives true holographic body)
+            // 2. Volumetric Luminescent Inner Core (Gives true holographic substance)
             const coreMaterial = new THREE.MeshBasicMaterial({
                 color: 0x0284c7,
                 transparent: true,
-                opacity: 0.09,
+                opacity: 0.10,
                 blending: THREE.AdditiveBlending,
                 side: THREE.DoubleSide
             });
@@ -268,12 +269,12 @@
             coreMesh.scale.set(0.97, 0.97, 0.97);
             this.faceGroup.add(coreMesh);
 
-            // 3. Glowing Point Grid Matrix (Digital shimmer at intersections)
+            // 3. Glowing Matrix Point Grid
             const matrixPointsMaterial = new THREE.PointsMaterial({
                 color: 0x38bdf8,
-                size: 0.022,
+                size: 0.024,
                 transparent: true,
-                opacity: 0.55,
+                opacity: 0.60,
                 blending: THREE.AdditiveBlending
             });
             const matrixPoints = new THREE.Points(geometry, matrixPointsMaterial);
@@ -284,7 +285,6 @@
          * Dedicated High-Fidelity Eye Contours & Ear Auricle Details
          */
         buildEyeAndEarDetails() {
-            // Detailed Orbital & Ocular Eyelid Rings for Left & Right Eyes
             const eyeCenters = [
                 { x: -0.31, y: 0.24, z: 0.70 },
                 { x: 0.31, y: 0.24, z: 0.70 }
@@ -293,18 +293,18 @@
             const eyeLineMat = new THREE.LineBasicMaterial({
                 color: 0x00f0ff,
                 transparent: true,
-                opacity: 0.85,
+                opacity: 0.9,
                 blending: THREE.AdditiveBlending
             });
+            this.contourMaterials.push(eyeLineMat);
 
             eyeCenters.forEach(eye => {
-                // Eyelid Ring
                 const ringPoints = [];
-                const segments = 24;
+                const segments = 28;
                 for (let i = 0; i <= segments; i++) {
                     const theta = (i / segments) * Math.PI * 2;
-                    const rx = Math.cos(theta) * 0.11;
-                    const ry = Math.sin(theta) * 0.055;
+                    const rx = Math.cos(theta) * 0.115;
+                    const ry = Math.sin(theta) * 0.058;
                     ringPoints.push(new THREE.Vector3(eye.x + rx, eye.y + ry, eye.z));
                 }
                 const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
@@ -313,13 +313,13 @@
 
                 // Pupil / Iris Focal Point
                 const irisGeo = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(eye.x, eye.y, eye.z + 0.015)
+                    new THREE.Vector3(eye.x, eye.y, eye.z + 0.018)
                 ]);
                 const irisMat = new THREE.PointsMaterial({
                     color: 0x38bdf8,
-                    size: 0.065,
+                    size: 0.07,
                     transparent: true,
-                    opacity: 0.95,
+                    opacity: 0.98,
                     blending: THREE.AdditiveBlending
                 });
                 const irisPoint = new THREE.Points(irisGeo, irisMat);
@@ -330,18 +330,19 @@
             const earLineMat = new THREE.LineBasicMaterial({
                 color: 0x00f0ff,
                 transparent: true,
-                opacity: 0.6,
+                opacity: 0.65,
                 blending: THREE.AdditiveBlending
             });
+            this.contourMaterials.push(earLineMat);
 
             [-1, 1].forEach(side => {
                 const earPoints = [];
-                const earSegs = 16;
+                const earSegs = 20;
                 for (let i = 0; i <= earSegs; i++) {
                     const t = (i / earSegs) * Math.PI;
-                    const ex = side * (0.76 + Math.sin(t) * 0.10);
-                    const ey = 0.09 + Math.cos(t) * 0.18;
-                    const ez = -0.05 + Math.sin(t) * 0.08;
+                    const ex = side * (0.76 + Math.sin(t) * 0.11);
+                    const ey = 0.09 + Math.cos(t) * 0.19;
+                    const ez = -0.05 + Math.sin(t) * 0.09;
                     earPoints.push(new THREE.Vector3(ex, ey, ez));
                 }
                 const earGeo = new THREE.BufferGeometry().setFromPoints(earPoints);
@@ -354,7 +355,7 @@
          * 68 Biometric Facial Landmark Points Mapped to Anatomical Proportions
          */
         buildLandmarkPoints() {
-            const landmarkPositions = [
+            this.landmarkCoords = [
                 // Jawline & Mandible Contour (0-16)
                 [-0.72, 0.28, -0.05], [-0.68, 0.12, 0.10], [-0.64, -0.05, 0.22], [-0.58, -0.22, 0.36],
                 [-0.50, -0.38, 0.48], [-0.38, -0.52, 0.60], [-0.24, -0.62, 0.68], [-0.12, -0.68, 0.72],
@@ -389,14 +390,14 @@
                 [0.18, -0.29, 0.80], [0.07, -0.33, 0.86], [0.0, -0.34, 0.87], [-0.07, -0.33, 0.86]
             ];
 
-            const pointCount = landmarkPositions.length;
+            const pointCount = this.landmarkCoords.length;
             const pointGeo = new THREE.BufferGeometry();
             const positions = new Float32Array(pointCount * 3);
 
             for (let i = 0; i < pointCount; i++) {
-                positions[i * 3] = landmarkPositions[i][0];
-                positions[i * 3 + 1] = landmarkPositions[i][1];
-                positions[i * 3 + 2] = landmarkPositions[i][2];
+                positions[i * 3] = this.landmarkCoords[i][0];
+                positions[i * 3 + 1] = this.landmarkCoords[i][1];
+                positions[i * 3 + 2] = this.landmarkCoords[i][2];
             }
 
             pointGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -411,6 +412,156 @@
 
             this.landmarks = new THREE.Points(pointGeo, this.landmarkMaterial);
             this.faceGroup.add(this.landmarks);
+        }
+
+        /**
+         * Fine Triangular Biometric Landmark Contour Networks
+         */
+        buildLandmarkContours() {
+            const coords = this.landmarkCoords;
+            const contourMat = new THREE.LineBasicMaterial({
+                color: 0x00f0ff,
+                transparent: true,
+                opacity: 0.70,
+                blending: THREE.AdditiveBlending
+            });
+            this.contourMaterials.push(contourMat);
+
+            const addLineLoop = (indices, closed = false) => {
+                const points = indices.map(idx => new THREE.Vector3(...coords[idx]));
+                if (closed && points.length > 0) points.push(points[0].clone());
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(geo, contourMat);
+                this.faceGroup.add(line);
+            };
+
+            // 1. Jawline Contour (0-16)
+            addLineLoop([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+
+            // 2. Eyebrow Arcs (17-21, 22-26)
+            addLineLoop([17, 18, 19, 20, 21]);
+            addLineLoop([22, 23, 24, 25, 26]);
+
+            // 3. Nose Bridge & Nostril Base (27-30, 31-35)
+            addLineLoop([27, 28, 29, 30]);
+            addLineLoop([31, 32, 33, 34, 35, 30]);
+
+            // 4. Closed Eye Loops (36-41, 42-47)
+            addLineLoop([36, 37, 38, 39, 40, 41], true);
+            addLineLoop([42, 43, 44, 45, 46, 47], true);
+
+            // 5. Outer & Inner Lip Loops (48-59, 60-67)
+            addLineLoop([48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59], true);
+            addLineLoop([60, 61, 62, 63, 64, 65, 66, 67], true);
+
+            // 6. Forensic Triangulation Connections (Nose to Eyes, Brows to Forehead)
+            const fineMat = new THREE.LineBasicMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+            this.contourMaterials.push(fineMat);
+
+            const triPairs = [
+                [27, 39], [27, 42], [28, 39], [28, 42],
+                [30, 48], [30, 54], [33, 51],
+                [36, 0], [45, 16], [48, 4], [54, 12],
+                [19, 27], [24, 27]
+            ];
+            const triPoints = [];
+            triPairs.forEach(([a, b]) => {
+                triPoints.push(new THREE.Vector3(...coords[a]), new THREE.Vector3(...coords[b]));
+            });
+            const triGeo = new THREE.BufferGeometry().setFromPoints(triPoints);
+            const triLines = new THREE.LineSegments(triGeo, fineMat);
+            this.faceGroup.add(triLines);
+        }
+
+        /**
+         * 3D Holographic Cyber Targeting Framing Brackets & Crosshair Notches
+         * (Matches the cyan HUD reticle frame surrounding the head in Image 2)
+         */
+        buildHolographicHUDFrame() {
+            const frameMat = new THREE.LineBasicMaterial({
+                color: 0x00f0ff,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            this.contourMaterials.push(frameMat);
+
+            // Outer Reticle Dimensions surrounding the head
+            const minX = -1.35, maxX = 1.35;
+            const minY = -1.25, maxY = 1.35;
+            const z = 0.1;
+            const bracketLen = 0.35;
+
+            const bracketPoints = [];
+
+            // Top-Left Corner Bracket
+            bracketPoints.push(new THREE.Vector3(minX, maxY - bracketLen, z), new THREE.Vector3(minX, maxY, z));
+            bracketPoints.push(new THREE.Vector3(minX, maxY, z), new THREE.Vector3(minX + bracketLen, maxY, z));
+
+            // Top-Right Corner Bracket
+            bracketPoints.push(new THREE.Vector3(maxX - bracketLen, maxY, z), new THREE.Vector3(maxX, maxY, z));
+            bracketPoints.push(new THREE.Vector3(maxX, maxY, z), new THREE.Vector3(maxX, maxY - bracketLen, z));
+
+            // Bottom-Left Corner Bracket
+            bracketPoints.push(new THREE.Vector3(minX, minY + bracketLen, z), new THREE.Vector3(minX, minY, z));
+            bracketPoints.push(new THREE.Vector3(minX, minY, z), new THREE.Vector3(minX + bracketLen, minY, z));
+
+            // Bottom-Right Corner Bracket
+            bracketPoints.push(new THREE.Vector3(maxX - bracketLen, minY, z), new THREE.Vector3(maxX, minY, z));
+            bracketPoints.push(new THREE.Vector3(maxX, minY, z), new THREE.Vector3(maxX, minY + bracketLen, z));
+
+            // Lateral Tick Notches (Left & Right)
+            bracketPoints.push(new THREE.Vector3(minX - 0.08, 0.05, z), new THREE.Vector3(minX + 0.08, 0.05, z));
+            bracketPoints.push(new THREE.Vector3(maxX - 0.08, 0.05, z), new THREE.Vector3(maxX + 0.08, 0.05, z));
+
+            // Top & Bottom Crosshair Ticks
+            bracketPoints.push(new THREE.Vector3(0, maxY - 0.08, z), new THREE.Vector3(0, maxY + 0.08, z));
+            bracketPoints.push(new THREE.Vector3(0, minY - 0.08, z), new THREE.Vector3(0, minY + 0.08, z));
+
+            const bracketGeo = new THREE.BufferGeometry().setFromPoints(bracketPoints);
+            const brackets = new THREE.LineSegments(bracketGeo, frameMat);
+            this.hudGroup.add(brackets);
+
+            // Subtle Outer Framing Border
+            const borderMat = new THREE.LineBasicMaterial({
+                color: 0x00f0ff,
+                transparent: true,
+                opacity: 0.20,
+                blending: THREE.AdditiveBlending
+            });
+            const borderPoints = [
+                new THREE.Vector3(minX, maxY, z), new THREE.Vector3(maxX, maxY, z),
+                new THREE.Vector3(maxX, maxY, z), new THREE.Vector3(maxX, minY, z),
+                new THREE.Vector3(maxX, minY, z), new THREE.Vector3(minX, minY, z),
+                new THREE.Vector3(minX, minY, z), new THREE.Vector3(minX, maxY, z)
+            ];
+            const borderGeo = new THREE.BufferGeometry().setFromPoints(borderPoints);
+            const borderLines = new THREE.LineSegments(borderGeo, borderMat);
+            this.hudGroup.add(borderLines);
+        }
+
+        /**
+         * Upward Holographic Projection Emitter Light Cone
+         */
+        buildProjectionEmitterCone() {
+            // Inverted cone radiating upward from circular platform to chin
+            const coneGeo = new THREE.CylinderGeometry(0.85, 0.65, 0.70, 36, 1, true);
+            this.emitterConeMat = new THREE.MeshBasicMaterial({
+                color: 0x00f0ff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.12,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const emitterCone = new THREE.Mesh(coneGeo, this.emitterConeMat);
+            emitterCone.position.set(0, -1.0, 0);
+            this.platformGroup.add(emitterCone);
         }
 
         /**
@@ -435,7 +586,7 @@
             this.haloMaterial = new THREE.MeshBasicMaterial({
                 color: 0x00f0ff,
                 transparent: true,
-                opacity: 0.28,
+                opacity: 0.30,
                 side: THREE.DoubleSide,
                 blending: THREE.AdditiveBlending
             });
@@ -459,7 +610,7 @@
                     color: ringColors[idx],
                     side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: 0.5 - idx * 0.1,
+                    opacity: 0.55 - idx * 0.1,
                     blending: THREE.AdditiveBlending
                 });
                 const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -474,7 +625,7 @@
                 color: 0x00f0ff,
                 side: THREE.DoubleSide,
                 transparent: true,
-                opacity: 0.15,
+                opacity: 0.18,
                 blending: THREE.AdditiveBlending
             });
             const groundDisk = new THREE.Mesh(groundDiskGeo, groundDiskMat);
@@ -495,7 +646,7 @@
                 tickPos.push(x1, -1.35, z1, x2, -1.35, z2);
             }
             tickGeo.setAttribute("position", new THREE.Float32BufferAttribute(tickPos, 3));
-            const tickMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.5 });
+            const tickMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.55 });
             this.platformTicks = new THREE.LineSegments(tickGeo, tickMat);
             this.platformGroup.add(this.platformTicks);
 
@@ -506,7 +657,7 @@
          * Floating Ambient Cyber Dust Particles
          */
         buildParticleAura() {
-            const particleCount = 240;
+            const particleCount = 250;
             const geo = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
             const velocities = [];
@@ -636,11 +787,11 @@
 
             this.laserMaterial.color.setHex(0x00f0ff);
             this.laserHalo.material.color.setHex(0x00f0ff);
-            this.meshMaterial.opacity = 0.72;
+            this.meshMaterial.opacity = 0.75;
             this.landmarkMaterial.size = 0.085;
 
             if (window.gsap) {
-                gsap.to(this.meshMaterial, { opacity: 0.85, duration: 0.35, yoyo: true, repeat: -1 });
+                gsap.to(this.meshMaterial, { opacity: 0.88, duration: 0.35, yoyo: true, repeat: -1 });
             }
         }
 
@@ -651,19 +802,16 @@
             this.isScanning = false;
             this.laserSpeed = 1.0;
 
-            if (isReal) {
-                this.scanState = "real";
-                // Verified Authentic: Vibrant Neon Emerald
-                this.meshMaterial.color.setHex(0x10b981);
-                this.laserMaterial.color.setHex(0x10b981);
-                this.landmarkMaterial.color.setHex(0x10b981);
-            } else {
-                this.scanState = "fake";
-                // Flagged Deepfake: Alarm Neon Rose / Magenta
-                this.meshMaterial.color.setHex(0xf43f5e);
-                this.laserMaterial.color.setHex(0xf43f5e);
-                this.landmarkMaterial.color.setHex(0xf43f5e);
-            }
+            const targetHex = isReal ? 0x10b981 : 0xf43f5e;
+            this.scanState = isReal ? "real" : "fake";
+
+            this.meshMaterial.color.setHex(targetHex);
+            this.laserMaterial.color.setHex(targetHex);
+            this.landmarkMaterial.color.setHex(targetHex);
+
+            this.contourMaterials.forEach(mat => {
+                mat.color.setHex(targetHex);
+            });
 
             if (window.gsap) {
                 gsap.killTweensOf(this.meshMaterial);
@@ -679,10 +827,15 @@
             this.scanState = "idle";
             this.laserSpeed = 1.2;
             this.meshMaterial.color.setHex(0x00f0ff);
-            this.meshMaterial.opacity = 0.42;
+            this.meshMaterial.opacity = 0.45;
             this.laserMaterial.color.setHex(0x00f0ff);
             this.landmarkMaterial.color.setHex(0x00f0ff);
             this.landmarkMaterial.size = 0.055;
+
+            this.contourMaterials.forEach(mat => {
+                mat.color.setHex(0x00f0ff);
+            });
+
             if (window.gsap) gsap.killTweensOf(this.meshMaterial);
         }
 
@@ -694,7 +847,7 @@
             const delta = this.clock.getDelta();
             const elapsed = this.clock.getElapsedTime();
 
-            // 1. Subtle idle breathing & mouse interpolation
+            // 1. Idle breathing & mouse interpolation
             if (!this.isDragging) {
                 this.mouse.x += (this.mouse.targetX - this.mouse.x) * 0.05;
                 this.mouse.y += (this.mouse.targetY - this.mouse.y) * 0.05;
@@ -704,7 +857,16 @@
                 this.faceGroup.rotation.x = -this.mouse.y + breathing;
             }
 
-            // 2. Moving Laser Sweep
+            // 2. Subtle Landmark Pulsing & Wireframe Illumination Shimmer
+            if (this.landmarkMaterial) {
+                const pulse = 0.055 + Math.sin(elapsed * 3.0) * 0.012;
+                this.landmarkMaterial.size = pulse;
+            }
+            if (this.emitterConeMat) {
+                this.emitterConeMat.opacity = 0.10 + Math.sin(elapsed * 2.0) * 0.04;
+            }
+
+            // 3. Moving Laser Sweep
             this.laserY += this.laserDirection * this.laserSpeed * delta;
             if (this.laserY > 1.15) {
                 this.laserY = 1.15;
@@ -715,11 +877,11 @@
             }
             this.laserMesh.position.y = this.laserY;
 
-            // 3. Rotate Holographic Base Platform
+            // 4. Rotate Holographic Base Platform
             this.platformGroup.rotation.y -= 0.006;
             if (this.platformTicks) this.platformTicks.rotation.y += 0.003;
 
-            // 4. Update Ambient Particles
+            // 5. Update Ambient Particles
             if (this.particles) {
                 const pos = this.particles.geometry.attributes.position.array;
                 for (let i = 0; i < this.particleVelocities.length; i++) {
@@ -733,7 +895,7 @@
                 this.particles.geometry.attributes.position.needsUpdate = true;
             }
 
-            // 5. Update Telemetry HUD
+            // 6. Update Telemetry HUD
             this.frameCount++;
             if (elapsed - this.lastFpsUpdate > 0.5) {
                 if (this.fpsEl) this.fpsEl.textContent = (this.frameCount / (elapsed - this.lastFpsUpdate)).toFixed(1);
